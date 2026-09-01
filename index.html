@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Calculate opaque colours and opacity to match blends on any background." />
     <title>Colour tools</title>
-    <link rel="icon" href="app/res/app-light.svg" type="image/svg+xml" data-brand-icon />
+    <link rel="icon" href="app/res/app.svg" type="image/svg+xml" data-brand-icon />
     <script>
       window.__MICROAPP__ = {
         themeStorageKey: "colour-tools-theme",
+        appIcon: "app/res/app.svg",
+        appIconLight: "",
+        appIconDark: "",
       };
     </script>
     <script src="app/theme-init.js"></script>
@@ -17,8 +20,7 @@
   <body>
     <header>
       <div class="site-brand">
-        <img class="site-logo brand-icon--light" src="app/res/app-light.svg" alt="Colour tools" width="40" height="40" />
-        <img class="site-logo brand-icon--dark" src="app/res/app-dark.svg" alt="" width="40" height="40" aria-hidden="true" />
+        <img class="site-logo" src="app/res/app.svg" alt="Colour tools" width="40" height="40" data-brand-icon />
         <h1>Colour tools</h1>
       </div>
       <p class="tagline">Calculate opaque colours and opacity to match blends on any background.</p>
