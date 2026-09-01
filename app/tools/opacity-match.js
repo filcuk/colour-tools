@@ -20,7 +20,7 @@ import { setHidden } from "../utils/dom.js";
 import { mountIcon } from "../utils/icons.js";
 import { hexToRgb, rgbToHex } from "../utils/color.js";
 import { buildChannelChartDefinition } from "./opacity-match-chart.js";
-import { colorMatchPercent, solveOpacityForMatch, solveTargetColour } from "./opacity-match-calc.js";
+import { alphaByteFromOpacity, colorMatchPercent, solveOpacityForMatch, solveTargetColour } from "./opacity-match-calc.js";
 import { formatChannelDeviations } from "./opacity-match-chart-data.js";
 
 const COLOR_FIELDS = /** @type {const} */ (["base", "background", "target"]);
@@ -46,27 +46,33 @@ function formatMatchPercent(percent) {
 }
 
 /**
- * @param {HTMLInputElement} opacityInput
  * @returns {number | null}
  */
-function readOpacityPercent(opacityInput) {
-  const text = opacityInput.value.trim();
-  if (!text) return null;
-  const parsed = Number(text.replace(/%$/, "").trim());
-  if (!Number.isFinite(parsed)) return null;
-  return parsed;
+function readAlphaByte(slider) {
+  const value = slider?.getValue();
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.min(255, Math.round(value)));
 }
 
 /**
- * @param {string | null | undefined} value
- * @returns {value is string}
+ * @param {{ alphaByte?: number, opacityPercent?: number, opacity?: number } | null | undefined} saved
+ * @returns {number | undefined}
  */
-function isValidHexColor(value) {
-  return typeof value === "string" && hexToRgb(value) !== null;
+function resolveSavedAlphaByte(saved) {
+  if (typeof saved?.alphaByte === "number" && Number.isFinite(saved.alphaByte)) {
+    return Math.max(0, Math.min(255, Math.round(saved.alphaByte)));
+  }
+  if (typeof saved?.opacityPercent === "number" && Number.isFinite(saved.opacityPercent)) {
+    return alphaByteFromOpacity(saved.opacityPercent / 100);
+  }
+  if (typeof saved?.opacity === "number" && Number.isFinite(saved.opacity)) {
+    return alphaByteFromOpacity(saved.opacity);
+  }
+  return undefined;
 }
 
 /**
- * @returns {{ base?: string, background?: string, target?: string, opacityPercent?: number } | null}
+ * @returns {{ base?: string, background?: string, target?: string, alphaByte?: number } | null}
  */
 function readSavedState() {
   try {
@@ -80,11 +86,19 @@ function readSavedState() {
 }
 
 /**
+ * @param {string | null | undefined} value
+ * @returns {value is string}
+ */
+function isValidHexColor(value) {
+  return typeof value === "string" && hexToRgb(value) !== null;
+}
+
+/**
  * @param {{
  *   base: string | null,
  *   background: string | null,
  *   target: string | null,
- *   opacityPercent: number | null,
+ *   alphaByte: number | null,
  * }} values
  */
 function persistState(values) {
@@ -109,11 +123,13 @@ function persistState(values) {
       delete payload.target;
     }
 
-    if (values.opacityPercent !== null && Number.isFinite(values.opacityPercent)) {
-      payload.opacityPercent = values.opacityPercent;
+    if (values.alphaByte !== null && Number.isFinite(values.alphaByte)) {
+      payload.alphaByte = values.alphaByte;
     } else {
-      delete payload.opacityPercent;
+      delete payload.alphaByte;
     }
+    delete payload.opacityPercent;
+    delete payload.opacity;
 
     if (Object.keys(payload).length === 0) {
       localStorage.removeItem(STATE_STORAGE_KEY);
@@ -340,13 +356,13 @@ export function initOpacityMatch(root) {
   };
 
   function readValues() {
-    const opacityPercent = readOpacityPercent(opacityInput);
+    const alphaByte = readAlphaByte(opacitySlider);
     return {
       base: colorInputs.base?.getValue() ?? null,
       background: colorInputs.background?.getValue() ?? null,
       target: colorInputs.target?.getValue() ?? null,
-      opacity: opacityPercent === null ? null : opacityPercent / 100,
-      opacityPercent,
+      alphaByte,
+      opacity: alphaByte === null ? null : alphaByte / 255,
     };
   }
 
@@ -421,8 +437,8 @@ export function initOpacityMatch(root) {
     const targetRgb = values.target ? hexToRgb(values.target) : null;
     const alpha = values.opacity;
 
-    if (targetRgb && alpha !== null) {
-      outputHex = rgbToHex({ ...targetRgb, a: alpha }, { alpha: true });
+    if (targetRgb && values.alphaByte !== null) {
+      outputHex = rgbToHex({ ...targetRgb, a: values.alphaByte / 255 }, { alpha: true });
       outputInput?.setValue(outputHex, { emit: false });
       copyOutputBtn.disabled = false;
     } else {
@@ -511,7 +527,7 @@ export function initOpacityMatch(root) {
 
     const solved = solveTargetColour(values.base, values.background, values.opacity);
     if (!solved) {
-      setResultBanner("Cannot calculate target at 0% opacity — try a higher value.", "warning");
+      setResultBanner("Cannot calculate target at 0 alpha — try a higher value.", "warning");
       return;
     }
 
@@ -561,7 +577,7 @@ export function initOpacityMatch(root) {
     }
 
     syncing = true;
-    opacitySlider?.setValue(solved.opacityPercent, { emit: false });
+    opacitySlider?.setValue(solved.alphaByte, { emit: false });
     syncing = false;
 
     updateResult(readValues());
@@ -595,8 +611,9 @@ export function initOpacityMatch(root) {
     if (isValidHexColor(savedState?.target)) {
       colorInputs.target?.setValue(savedState.target, { emit: false });
     }
-    if (typeof savedState?.opacityPercent === "number" && Number.isFinite(savedState.opacityPercent)) {
-      opacitySlider?.setValue(savedState.opacityPercent, { emit: false });
+    const savedAlphaByte = resolveSavedAlphaByte(savedState);
+    if (savedAlphaByte !== undefined) {
+      opacitySlider?.setValue(savedAlphaByte, { emit: false });
     }
     syncing = false;
   }
@@ -616,10 +633,7 @@ export function initOpacityMatch(root) {
   lockReadOnlyColorField(outputWrap);
 
   opacitySlider = initSlider(opacitySliderEl, {
-    defaultValue:
-      typeof savedState?.opacityPercent === "number" && Number.isFinite(savedState.opacityPercent)
-        ? savedState.opacityPercent
-        : undefined,
+    defaultValue: resolveSavedAlphaByte(savedState),
     onInput: scheduleRefreshPreview,
     onChange: refreshPreview,
   });

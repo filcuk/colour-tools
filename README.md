@@ -10,7 +10,7 @@ When you need to use transparency **and** match a particular solid colour on a b
 2. Set **background colour** — the surface behind the semi-transparent layer.
 3. Either set **opacity** and click **Calculate Target**, or set **target colour** and click **Calculate Opacity**.
 
-The tool uses per-channel sRGB blending (`foreground × α + background × (1 − α)`). Opacity is stored as a whole percent (0–100), so an exact mathematical match may not always be possible when channels round to 8-bit values.
+The tool uses per-channel sRGB blending (`foreground × α + background × (1 − α)`). Opacity is the alpha byte (0–255) in `#RRGGBBAA`; only 8-bit channel rounding limits exact matches.
 
 Results include a blended preview, output colour (`#RRGGBBAA` when target and opacity are set), match percentage, and a channel comparison chart.
 

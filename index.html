@@ -120,21 +120,21 @@
                 <div class="panel-grid panel-grid-2 opacity-match-grid">
                   <div class="opacity-match-input-field">
                     <div class="field opacity-match-opacity-field">
-                      <div class="slider" id="opacity-match-opacity" data-slider-min="0" data-slider-max="100"
-                        data-slider-default="50" data-slider-format="percentage">
-                        <label class="field-label" for="opacity-match-opacity-range">Opacity</label>
+                      <div class="slider" id="opacity-match-opacity" data-slider-min="0" data-slider-max="255"
+                        data-slider-default="128" data-slider-format="integer">
+                        <label class="field-label" for="opacity-match-opacity-range">Opacity (alpha)</label>
                         <div class="slider-row">
                           <input type="range" id="opacity-match-opacity-range" class="slider-range" />
                           <div class="slider-input-wrap">
                             <input type="text" class="input slider-input" inputmode="numeric"
-                              aria-label="Opacity percent" aria-describedby="opacity-match-opacity-hint" />
+                              aria-label="Opacity alpha byte" aria-describedby="opacity-match-opacity-hint" />
                             <span class="slider-suffix hidden" aria-hidden="true">%</span>
                           </div>
                           <input type="hidden" class="slider-value" />
                         </div>
                       </div>
                     </div>
-                    <p class="panel-hint" id="opacity-match-opacity-hint">Layer opacity for the target colour.</p>
+                    <p class="panel-hint" id="opacity-match-opacity-hint">Alpha 0–255 — matches the AA pair in output <code>#RRGGBBAA</code>.</p>
                     <button type="button" class="btn btn-primary opacity-match-calc-btn" id="opacity-match-calc-target"
                       data-tooltip="Use set opacity to calculate closest target colour match"
                       data-tooltip-position="top">Calculate Target</button>
@@ -241,6 +241,7 @@
         <div class="modal-body">
           <p>If you <em>need to use transparency</em>, also have to <em>match a particular solid colour</em> at the same time, this is the tool for you.</p>
           <p>By defining the base and background colours, you can calculate the nearest target colour and opacity.</p>
+          <p>Opacity is the alpha byte (0–255) used in <code>#RRGGBBAA</code> output. Colour channels are rounded to 8-bit values, so a perfect match to the base may not always be possible.</p>
         </div>
         <div class="modal-footer">
           <div class="modal-footer-actions">

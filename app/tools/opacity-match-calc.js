@@ -6,6 +6,30 @@ import { blendOver, solveAlphaBestEffort, solveForeground, colorsMatch } from ".
 import { hexToRgb, rgbToHex } from "../utils/color.js";
 
 /**
+ * @param {number} opacity 0–1
+ * @returns {number} Alpha byte 0–255 (hex AA channel).
+ */
+export function alphaByteFromOpacity(opacity) {
+  return Math.max(0, Math.min(255, Math.round(opacity * 255)));
+}
+
+/**
+ * @param {number} alphaByte 0–255
+ * @returns {number} Opacity 0–1 for blend math.
+ */
+export function opacityFromAlphaByte(alphaByte) {
+  return alphaByte / 255;
+}
+
+/**
+ * @param {number} opacity 0–1
+ * @returns {number} Opacity quantised to an 8-bit alpha channel.
+ */
+export function quantizeOpacity(opacity) {
+  return opacityFromAlphaByte(alphaByteFromOpacity(opacity));
+}
+
+/**
  * @param {{ r: number, g: number, b: number }} a
  * @param {{ r: number, g: number, b: number }} b
  * @returns {number} Match percentage from 0 to 100, one decimal place.
@@ -51,13 +75,14 @@ export function solveTargetColour(baseHex, backgroundHex, opacity) {
 }
 
 /**
- * Calculate opacity percent for a target to match base on a background (calculate-opacity flow).
+ * Calculate opacity for a target to match base on a background (calculate-opacity flow).
  *
  * @param {string} baseHex
  * @param {string} backgroundHex
  * @param {string} targetHex
  * @returns {{
- *   opacityPercent: number,
+ *   alphaByte: number,
+ *   opacity: number,
  *   exact: boolean,
  *   reblended: { r: number, g: number, b: number } | null,
  *   shouldWarnClosest: boolean,
@@ -71,15 +96,16 @@ export function solveOpacityForMatch(baseHex, backgroundHex, targetHex) {
   if (!baseRgb || !backgroundRgb || !targetRgb) return null;
 
   const { alpha, exact } = solveAlphaBestEffort(baseRgb, targetRgb, backgroundRgb);
-  const opacityPercent = Math.round(alpha * 100);
-  const opacity = opacityPercent / 100;
+  const alphaByte = alphaByteFromOpacity(alpha);
+  const opacity = opacityFromAlphaByte(alphaByte);
   const reblended = blendOver(targetRgb, backgroundRgb, opacity);
 
   const shouldWarnClosest =
     !exact && (reblended === null || !colorsMatch(reblended, baseRgb, 0));
 
   return {
-    opacityPercent,
+    alphaByte,
+    opacity,
     exact,
     reblended,
     shouldWarnClosest,
