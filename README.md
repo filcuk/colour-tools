@@ -1,51 +1,34 @@
-# 🤏 SMA1 Framework
+# Colour tools
 
-A feature-rich framework **for building small, static apps**.  
-Ready for GitHub Pages deployment. LLM skills included.  
+Small static tools for working with colours. Live site: [filcuk.github.io/colour-tools](https://filcuk.github.io/colour-tools/)
 
-Test all components: [demo](https://filcuk.github.io/sma1-framework/demo.html)
+## Opacity match
 
-![Scrolling demo](res/demo-scroll.avif)
+When you need to use transparency **and** match a particular solid colour on a background, opacity match calculates the nearest opaque target colour or layer opacity.
 
-## Quick start
+1. Set **base colour** — the blended result you want to match.
+2. Set **background colour** — the surface behind the semi-transparent layer.
+3. Either set **opacity** and click **Calculate Target**, or set **target colour** and click **Calculate Opacity**.
 
-1. Click **Use this template** on GitHub to create a new repo.
-2. Follow **[USAGE.md](USAGE.md)** to customize the homepage, remove the demo if you do not need it, and configure branding.
-3. Build your UI in `index.html` and wire logic in [`app/main.js`](app/main.js).
-4. Push to `main`, then in **Settings → Pages** set **Source** to **GitHub Actions**.
-5. After the deploy workflow runs, open `https://<user>.github.io/<repo>/` (or `demo.html` if you kept it).
+The tool uses per-channel sRGB blending (`foreground × α + background × (1 − α)`). Opacity is stored as a whole percent (0–100), so an exact mathematical match may not always be possible when channels round to 8-bit values.
 
-## Documentation
-
-| Guide | Contents |
-| ----- | -------- |
-| **[demo.html](demo.html)** | Interactive showcase of all components |
-| **[USAGE.md](USAGE.md)** | Forking the framework, project layout, local preview, GitHub Pages, component catalogue, and markup/JS examples |
-| **[DEVELOPMENT.md](DEVELOPMENT.md)** | Maintainer tooling: lint/test, README demo scroll capture |
-| **[DESIGN.md](DESIGN.md)** | Design philosophy: action feedback, tooltip modes, selection highlights, aesthetics |
-| **[DISCLAIMER.md](DISCLAIMER.md)** | LLM assistance, warranty, and third-party license notices |
-| **[AGENTS.md](AGENTS.md)** | Rules for AI assistants (LLM skills & workflow automation) working in this repo |
-| **[.cursor/skills/](.cursor/skills/)** | LLM skills: multi-step automations for repo maintenance, codegen, upgrades, and more |
-
-## Stack
-
-- Plain HTML, CSS custom properties, and ES modules
-- Light / dark / system theme with flash-free `theme-init.js`
-- Shared page chrome (footer, theme toggle, page nav) via `initShell()`
-- Optional vendors: [Prism.js](https://prismjs.com/) (code blocks), [Toast UI Editor](https://github.com/nhn/tui.editor) (rich text)
-- Deployed with GitHub Actions to GitHub Pages
+Results include a blended preview, output colour (`#RRGGBBAA` when target and opacity are set), match percentage, and a channel comparison chart.
 
 ## Development
 
+Built on the [SMA1 Framework](https://github.com/filcuk/sma1-framework) — plain HTML, CSS, and ES modules, deployed to GitHub Pages.
+
 ```bash
-npm ci          # Install deps
-npm run lint    # Run linter
-npm test        # Run automated tests
-npx serve .     # Start a local server
+npm ci
+npm run lint
+npm test
+npm run verify:framework
+npx serve .
 ```
 
-Maintainer notes (README scroll capture, etc.): **[DEVELOPMENT.md](DEVELOPMENT.md)**.
+`npm test` runs the fork test suite (`scripts/test-app.mjs`) — catalogue tests for trimmed framework components are skipped.  
+App logic lives under `app/tools/`; colour math is in `app/utils/blend.js` and `app/tools/opacity-match-calc.js`.
 
 ## License
 
-MIT - see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
