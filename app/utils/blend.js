@@ -1,6 +1,9 @@
 /**
  * sRGB channel blend over a solid background (same model as CSS rgba() over a fill).
  *
+ * Fork-local module for colour-tools — not part of the SMA1 framework manifest.
+ * If upstream adds `blend.js`, reconcile during framework sync/migration.
+ *
  * result = foreground × α + background × (1 − α)   per R/G/B, α ∈ 0…1
  */
 
@@ -109,8 +112,7 @@ export function solveAlpha(result, foreground, background) {
   }
 
   if (alphas.length === 0) {
-    const matchesBackground = CHANNELS.every((key) => result[key] === background[key]);
-    return matchesBackground ? null : null;
+    return null;
   }
 
   const [first, ...rest] = alphas;

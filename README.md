@@ -27,7 +27,7 @@ npx serve .
 ```
 
 `npm test` runs the fork test suite (`scripts/test-app.mjs`) — catalogue tests for trimmed framework components are skipped.  
-App logic lives under `app/tools/`; colour math is in `app/utils/blend.js` and `app/tools/opacity-match-calc.js`.
+App logic lives under `app/tools/`. Colour math: `app/utils/blend.js` (fork-local, outside `framework-manifest.json`) and `app/tools/opacity-match-calc.js`.
 
 ## License
 

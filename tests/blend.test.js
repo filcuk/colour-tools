@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { colorMatchPercent } from "../app/tools/opacity-match-calc.js";
 import {
   blendChannel,
   blendOver,
@@ -75,17 +76,8 @@ test("solveAlphaBestEffort returns closest alpha when channels disagree", () => 
 
   const blended = blendOver(foreground, background, alpha);
   assert.ok(blended);
-  assert.ok(colorMatchPercentLike(blended, result) >= 70);
+  assert.ok(colorMatchPercent(blended, result) >= 70);
 });
-
-function colorMatchPercentLike(a, b) {
-  const dr = a.r - b.r;
-  const dg = a.g - b.g;
-  const db = a.b - b.b;
-  const distance = Math.sqrt(dr * dr + dg * dg + db * db);
-  const maxDistance = Math.sqrt(3 * 255 * 255);
-  return Math.max(0, Math.min(100, Math.round(100 - (distance / maxDistance) * 100)));
-}
 
 test("solveAlphaBestEffort keeps exact solves exact", () => {
   const foreground = { r: 200, g: 100, b: 50 };

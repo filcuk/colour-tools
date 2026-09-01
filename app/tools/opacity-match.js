@@ -600,24 +600,6 @@ export function initOpacityMatch(root) {
     persistState(readValues());
   }
 
-  function restoreSavedState() {
-    syncing = true;
-    if (isValidHexColor(savedState?.base)) {
-      colorInputs.base?.setValue(savedState.base, { emit: false });
-    }
-    if (isValidHexColor(savedState?.background)) {
-      colorInputs.background?.setValue(savedState.background, { emit: false });
-    }
-    if (isValidHexColor(savedState?.target)) {
-      colorInputs.target?.setValue(savedState.target, { emit: false });
-    }
-    const savedAlphaByte = resolveSavedAlphaByte(savedState);
-    if (savedAlphaByte !== undefined) {
-      opacitySlider?.setValue(savedAlphaByte, { emit: false });
-    }
-    syncing = false;
-  }
-
   COLOR_FIELDS.forEach((key) => {
     const savedColor = savedState?.[key];
     colorInputs[key] = initColorInput(wraps[key], {
@@ -650,7 +632,6 @@ export function initOpacityMatch(root) {
   wireCalcButtonTooltipNowrap(calcTargetBtn);
   wireCalcButtonTooltipNowrap(calcOpacityBtn);
 
-  restoreSavedState();
   persistEnabled = true;
   refreshPreview();
   const help = initOpacityMatchHelp();
