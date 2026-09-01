@@ -9,7 +9,7 @@ import { initChart } from "../components/charts.js";
 import { initColorInput } from "../components/color-input.js";
 import { initSlider } from "../components/slider.js";
 import { initTutorial } from "../components/tutorial.js";
-import { blendOver, colorsMatch } from "../utils/blend.js";
+import { blendOver } from "../utils/blend.js";
 import {
   prepareButtonLabelFlash,
   flashButtonLabel,
@@ -368,7 +368,6 @@ export function initOpacityMatch(root) {
 
   function setMatchPercent(message) {
     matchPercentEl.textContent = message;
-    matchPercentEl.removeAttribute("data-match");
   }
 
   /**
@@ -455,7 +454,6 @@ export function initOpacityMatch(root) {
           const deviations = formatChannelDeviations(blended, baseRgb);
           const deviationSuffix = deviations ? ` (${deviations})` : "";
           setMatchPercent(`${formatMatchPercent(percent)} match to base${deviationSuffix}`);
-          matchPercentEl.dataset.match = colorsMatch(blended, baseRgb, 0) ? "yes" : "partial";
         } else {
           setMatchPercent("Enter a base colour to compare.");
         }

@@ -24,11 +24,6 @@
   line-height: inherit;
 }
 
-.opacity-match-match-percent[data-match="yes"] {
-  color: var(--accent);
-  font-weight: 600;
-}
-
 .opacity-match-input-field {
   display: flex;
   flex-direction: column;
@@ -81,10 +76,6 @@
   flex: 0 0 auto;
   width: fit-content;
   max-width: 100%;
-}
-
-.opacity-match-match-percent {
-  margin: 0;
 }
 
 .opacity-match-result-input .color-input-field[readonly] {
