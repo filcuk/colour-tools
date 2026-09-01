@@ -27,6 +27,7 @@ const FORK_TESTS = [
   "tests/icons.test.js",
   "tests/menu-grid.test.js",
   "tests/opacity-match-chart.test.js",
+  "tests/opacity-match.test.js",
   "tests/title-numbering.test.js",
   "tests/tutorial.test.js",
 ];

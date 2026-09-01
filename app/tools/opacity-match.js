@@ -9,7 +9,7 @@ import { initChart } from "../components/charts.js";
 import { initColorInput } from "../components/color-input.js";
 import { initSlider } from "../components/slider.js";
 import { initTutorial } from "../components/tutorial.js";
-import { blendOver, solveAlphaBestEffort, solveForeground, colorsMatch } from "../utils/blend.js";
+import { blendOver, colorsMatch } from "../utils/blend.js";
 import {
   prepareButtonLabelFlash,
   flashButtonLabel,
@@ -20,6 +20,7 @@ import { setHidden } from "../utils/dom.js";
 import { mountIcon } from "../utils/icons.js";
 import { hexToRgb, rgbToHex } from "../utils/color.js";
 import { buildChannelChartDefinition } from "./opacity-match-chart.js";
+import { colorMatchPercent, solveOpacityForMatch, solveTargetColour } from "./opacity-match-calc.js";
 import { formatChannelDeviations } from "./opacity-match-chart-data.js";
 
 const COLOR_FIELDS = /** @type {const} */ (["base", "background", "target"]);
@@ -35,21 +36,6 @@ const RESULT_BANNER_ICONS = /** @type {const} */ ({
   error: "error",
   info: "info",
 });
-
-/**
- * @param {{ r: number, g: number, b: number }} a
- * @param {{ r: number, g: number, b: number }} b
- * @returns {number} Match percentage from 0 to 100, one decimal place.
- */
-function colorMatchPercent(a, b) {
-  const dr = a.r - b.r;
-  const dg = a.g - b.g;
-  const db = a.b - b.b;
-  const distance = Math.sqrt(dr * dr + dg * dg + db * db);
-  const maxDistance = Math.sqrt(3 * 255 * 255);
-  const raw = Math.max(0, Math.min(100, 100 - (distance / maxDistance) * 100));
-  return Math.round(raw * 10) / 10;
-}
 
 /**
  * @param {number} percent
@@ -481,21 +467,20 @@ export function initOpacityMatch(root) {
       return;
     }
 
-    const solved = solveForeground(baseRgb, backgroundRgb, values.opacity);
+    const solved = solveTargetColour(values.base, values.background, values.opacity);
     if (!solved) {
       setResultBanner("Cannot calculate target at 0% opacity — try a higher value.", "warning");
       return;
     }
 
     syncing = true;
-    colorInputs.target?.setValue(rgbToHex(solved), { emit: false });
+    colorInputs.target?.setValue(solved.targetHex, { emit: false });
     syncing = false;
 
     updateResult(readValues());
 
-    const reblended = blendOver(solved, backgroundRgb, values.opacity);
-    if (reblended && !colorsMatch(reblended, baseRgb, 0)) {
-      const matchPercent = colorMatchPercent(reblended, baseRgb);
+    if (solved.reblended && !solved.isExactMatch) {
+      const matchPercent = colorMatchPercent(solved.reblended, baseRgb);
       setResultBanner(
         `No exact target exists at this opacity — this is the closest match (${formatMatchPercent(matchPercent)}).`,
         "warning"
@@ -527,31 +512,31 @@ export function initOpacityMatch(root) {
       return;
     }
 
-    const { alpha, exact } = solveAlphaBestEffort(baseRgb, targetRgb, backgroundRgb);
+    const solved = solveOpacityForMatch(values.base, values.background, values.target);
+    if (!solved) {
+      setResultBanner("Enter valid base, background, and target colours.", "warning");
+      return;
+    }
 
     syncing = true;
-    opacitySlider?.setValue(Math.round(alpha * 100), { emit: false });
+    opacitySlider?.setValue(solved.opacityPercent, { emit: false });
     syncing = false;
 
     updateResult(readValues());
 
-    const updated = readValues();
-    const blended =
-      updated.target && updated.background && updated.opacity !== null
-        ? blendOver(hexToRgb(updated.target), hexToRgb(updated.background), updated.opacity)
-        : null;
-
-    if (!exact && blended && !colorsMatch(blended, baseRgb, 0)) {
-      const matchPercent = colorMatchPercent(blended, baseRgb);
-      setResultBanner(
-        `No exact opacity matches base on this background — using closest match (${formatMatchPercent(matchPercent)} match).`,
-        "warning"
-      );
-    } else if (!exact && !blended) {
-      setResultBanner(
-        "No exact opacity matches base on this background — using closest match.",
-        "warning"
-      );
+    if (solved.shouldWarnClosest) {
+      const matchPercent = solved.matchPercent ?? 0;
+      if (solved.reblended) {
+        setResultBanner(
+          `No exact opacity matches base on this background — using closest match (${formatMatchPercent(matchPercent)} match).`,
+          "warning"
+        );
+      } else {
+        setResultBanner(
+          "No exact opacity matches base on this background — using closest match.",
+          "warning"
+        );
+      }
     }
 
     persistState(readValues());
