@@ -3,13 +3,14 @@
  * calculate the fourth using sRGB channel blending.
  */
 
+import { initColorInput } from "../components/color-input.js";
 import { initSlider } from "../components/slider.js";
 import { blendOver, colorsMatch, solveAlpha, solveForeground } from "../utils/blend.js";
 import { hexToRgb, parseHexColor, rgbToHex } from "../utils/color.js";
 
 /** @typedef {"base" | "background" | "opacity" | "target"} FieldKey */
 
-const FIELD_KEYS = /** @type {FieldKey[]} */ (["base", "background", "opacity", "target"]);
+const COLOR_FIELDS = /** @type {const} */ (["base", "background", "target"]);
 const MATCH_TOLERANCE = 2;
 const DEBOUNCE_MS = 150;
 
@@ -129,15 +130,10 @@ function labelForField(field) {
 export function initOpacityMatch(root) {
   if (!root) return null;
 
-  const fields = {
-    base: root.querySelector("#opacity-match-base"),
-    background: root.querySelector("#opacity-match-background"),
-    target: root.querySelector("#opacity-match-target"),
-  };
-  const swatches = {
-    base: root.querySelector("#opacity-match-base-swatch"),
-    background: root.querySelector("#opacity-match-background-swatch"),
-    target: root.querySelector("#opacity-match-target-swatch"),
+  const wraps = {
+    base: root.querySelector("#opacity-match-base-wrap"),
+    background: root.querySelector("#opacity-match-background-wrap"),
+    target: root.querySelector("#opacity-match-target-wrap"),
   };
   const opacitySliderEl = root.querySelector("#opacity-match-opacity");
   const opacityInput = opacitySliderEl?.querySelector(".slider-input");
@@ -147,9 +143,9 @@ export function initOpacityMatch(root) {
   const previewMatchEl = root.querySelector("#opacity-match-preview-match");
 
   if (
-    !fields.base ||
-    !fields.background ||
-    !fields.target ||
+    !wraps.base ||
+    !wraps.background ||
+    !wraps.target ||
     !opacitySliderEl ||
     !opacityInput ||
     !statusEl
@@ -163,12 +159,19 @@ export function initOpacityMatch(root) {
   let debounceTimer;
   let syncing = false;
 
+  /** @type {Record<"base" | "background" | "target", ReturnType<typeof initColorInput> | null>} */
+  const colorInputs = {
+    base: null,
+    background: null,
+    target: null,
+  };
+
   function readValues() {
     const opacityPercent = readOpacityPercent(opacityInput);
     return {
-      base: parseHexColor(fields.base.value),
-      background: parseHexColor(fields.background.value),
-      target: parseHexColor(fields.target.value),
+      base: colorInputs.base?.getValue() ?? null,
+      background: colorInputs.background?.getValue() ?? null,
+      target: colorInputs.target?.getValue() ?? null,
       opacity: opacityPercent === null ? null : opacityPercent / 100,
       opacityPercent,
     };
@@ -188,14 +191,9 @@ export function initOpacityMatch(root) {
     return empty;
   }
 
-  function syncSwatches(values) {
-    paintSwatch(swatches.base, values.base);
-    paintSwatch(swatches.background, values.background);
-    paintSwatch(swatches.target, values.target);
-    paintSwatch(previewBaseSwatch, values.base);
-  }
-
   function updatePreview(values) {
+    paintSwatch(previewBaseSwatch, values.base);
+
     const baseRgb = values.base ? hexToRgb(values.base) : null;
     const backgroundRgb = values.background ? hexToRgb(values.background) : null;
     const targetRgb = values.target ? hexToRgb(values.target) : null;
@@ -233,9 +231,7 @@ export function initOpacityMatch(root) {
     if (result.field === "opacity") {
       opacitySlider?.setValue(result.value, { emit: false });
     } else {
-      const input = fields[result.field];
-      input.value = String(result.value);
-      paintSwatch(swatches[result.field], String(result.value));
+      colorInputs[result.field]?.setValue(result.value, { emit: false });
     }
     syncing = false;
   }
@@ -244,7 +240,6 @@ export function initOpacityMatch(root) {
     if (syncing) return;
 
     const values = readValues();
-    syncSwatches(values);
     updatePreview(values);
 
     const emptyFields = findEmptyFields(values);
@@ -267,10 +262,7 @@ export function initOpacityMatch(root) {
     }
 
     applyComputedValue(solved);
-
-    const nextValues = readValues();
-    syncSwatches(nextValues);
-    updatePreview(nextValues);
+    updatePreview(readValues());
     setStatus(`Calculated ${labelForField(solved.field)}.`);
   }
 
@@ -279,10 +271,11 @@ export function initOpacityMatch(root) {
     debounceTimer = setTimeout(recompute, DEBOUNCE_MS);
   }
 
-  FIELD_KEYS.forEach((key) => {
-    if (key === "opacity") return;
-    fields[key].addEventListener("input", scheduleRecompute);
-    fields[key].addEventListener("change", recompute);
+  COLOR_FIELDS.forEach((key) => {
+    colorInputs[key] = initColorInput(wraps[key], {
+      onChange: recompute,
+      onInput: scheduleRecompute,
+    });
   });
 
   opacitySlider = initSlider(opacitySliderEl, {

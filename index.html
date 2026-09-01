@@ -9,11 +9,6 @@
     <script>
       window.__MICROAPP__ = {
         themeStorageKey: "colour-tools-theme",
-        // App logo / favicon: pair (default) or single.
-        // Pair: appIconLight + appIconDark. Single: appIcon only, set light/dark to "".
-        // appIcon: "app/res/app.svg",
-        // appIconLight: "app/res/app-light.svg",
-        // appIconDark: "app/res/app-dark.svg",
       };
     </script>
     <script src="app/theme-init.js"></script>
@@ -45,23 +40,57 @@
               <p class="content-tier-lead">Fill any three fields and leave one empty to calculate it.</p>
               <div class="section-panel">
                 <div class="panel-grid panel-grid-2 opacity-match-grid">
-                  <div class="field">
+                  <div class="color-input" id="opacity-match-base-wrap" data-color-input-open="picker"
+                    data-color-input-default="#FCAF7C">
                     <label class="field-label" for="opacity-match-base">Base colour</label>
                     <div class="color-input-control">
-                      <span class="color-input-swatch" id="opacity-match-base-swatch" aria-hidden="true"></span>
+                      <span class="color-input-swatch" aria-hidden="true"></span>
                       <input type="text" id="opacity-match-base" class="input color-input-field" value="#FCAF7C"
                         placeholder="#RRGGBB" autocomplete="off" spellcheck="false"
                         aria-describedby="opacity-match-base-hint" />
+                      <input type="hidden" class="color-input-value" />
+                    </div>
+                    <div class="color-picker" data-color-picker-default="#FCAF7C" data-color-picker-color-set>
+                      <button type="button" class="btn color-picker-trigger" aria-expanded="false"
+                        aria-label="Open colour picker">Colour picker</button>
+                      <div class="color-picker-popup hidden" role="dialog" aria-label="Colour picker" hidden>
+                        <div class="color-picker-shell">
+                          <div class="color-picker-panel"></div>
+                          <div class="color-set color-picker-sets hidden" data-color-set-embedded hidden>
+                            <div class="color-set-panel">
+                              <select class="input color-set-select" aria-label="Colour set"></select>
+                              <div class="color-set-grid" role="listbox" aria-label="Colours"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <p class="panel-hint" id="opacity-match-base-hint">The blended colour you want to match.</p>
                   </div>
-                  <div class="field">
+                  <div class="color-input" id="opacity-match-background-wrap" data-color-input-open="picker"
+                    data-color-input-default="#FFFFFF">
                     <label class="field-label" for="opacity-match-background">Background colour</label>
                     <div class="color-input-control">
-                      <span class="color-input-swatch" id="opacity-match-background-swatch" aria-hidden="true"></span>
+                      <span class="color-input-swatch" aria-hidden="true"></span>
                       <input type="text" id="opacity-match-background" class="input color-input-field" value="#FFFFFF"
                         placeholder="#RRGGBB" autocomplete="off" spellcheck="false"
                         aria-describedby="opacity-match-background-hint" />
+                      <input type="hidden" class="color-input-value" />
+                    </div>
+                    <div class="color-picker" data-color-picker-default="#FFFFFF" data-color-picker-color-set>
+                      <button type="button" class="btn color-picker-trigger" aria-expanded="false"
+                        aria-label="Open colour picker">Colour picker</button>
+                      <div class="color-picker-popup hidden" role="dialog" aria-label="Colour picker" hidden>
+                        <div class="color-picker-shell">
+                          <div class="color-picker-panel"></div>
+                          <div class="color-set color-picker-sets hidden" data-color-set-embedded hidden>
+                            <div class="color-set-panel">
+                              <select class="input color-set-select" aria-label="Colour set"></select>
+                              <div class="color-set-grid" role="listbox" aria-label="Colours"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <p class="panel-hint" id="opacity-match-background-hint">The surface behind the layer.</p>
                   </div>
@@ -81,13 +110,29 @@
                     </div>
                     <p class="panel-hint" id="opacity-match-opacity-hint">Clear to solve for opacity.</p>
                   </div>
-                  <div class="field">
+                  <div class="color-input" id="opacity-match-target-wrap" data-color-input-open="picker">
                     <label class="field-label" for="opacity-match-target">Target colour</label>
                     <div class="color-input-control">
-                      <span class="color-input-swatch is-empty" id="opacity-match-target-swatch" aria-hidden="true"></span>
+                      <span class="color-input-swatch" aria-hidden="true"></span>
                       <input type="text" id="opacity-match-target" class="input color-input-field" value=""
                         placeholder="#RRGGBB" autocomplete="off" spellcheck="false"
                         aria-describedby="opacity-match-target-hint" />
+                      <input type="hidden" class="color-input-value" />
+                    </div>
+                    <div class="color-picker" data-color-picker-color-set>
+                      <button type="button" class="btn color-picker-trigger" aria-expanded="false"
+                        aria-label="Open colour picker">Colour picker</button>
+                      <div class="color-picker-popup hidden" role="dialog" aria-label="Colour picker" hidden>
+                        <div class="color-picker-shell">
+                          <div class="color-picker-panel"></div>
+                          <div class="color-set color-picker-sets hidden" data-color-set-embedded hidden>
+                            <div class="color-set-panel">
+                              <select class="input color-set-select" aria-label="Colour set"></select>
+                              <div class="color-set-grid" role="listbox" aria-label="Colours"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     <p class="panel-hint" id="opacity-match-target-hint">The opaque colour to apply at that opacity.</p>
                   </div>
