@@ -4,6 +4,7 @@
  */
 
 import { hideBanner, showBanner } from "../components/banner.js";
+import { initChart } from "../components/charts.js";
 import { initColorInput } from "../components/color-input.js";
 import { initSlider } from "../components/slider.js";
 import { blendOver, solveAlphaBestEffort, solveForeground } from "../utils/blend.js";
@@ -12,8 +13,10 @@ import {
   flashButtonLabel,
 } from "../utils/button-label.js";
 import { copyText } from "../utils/clipboard.js";
+import { setHidden } from "../utils/dom.js";
 import { mountIcon } from "../utils/icons.js";
 import { hexToRgb, rgbToHex } from "../utils/color.js";
+import { buildChannelChartDefinition } from "./opacity-match-chart.js";
 
 const COLOR_FIELDS = /** @type {const} */ (["base", "background", "target"]);
 const DEBOUNCE_MS = 150;
@@ -75,6 +78,7 @@ export function initOpacityMatch(root) {
   const resultBanner = root.querySelector("#opacity-match-result-banner");
   const resultBannerBody = root.querySelector("#opacity-match-result-banner-body");
   const resultBannerIcon = resultBanner?.querySelector(".banner-icon");
+  const channelChartEl = root.querySelector("#opacity-match-channel-chart");
 
   if (
     !wraps.base ||
@@ -89,7 +93,8 @@ export function initOpacityMatch(root) {
     !matchPercentEl ||
     !resultBanner ||
     !resultBannerBody ||
-    !resultBannerIcon
+    !resultBannerIcon ||
+    !channelChartEl
   ) {
     return null;
   }
@@ -98,6 +103,8 @@ export function initOpacityMatch(root) {
   let opacitySlider = null;
   /** @type {ReturnType<typeof initColorInput> | null} */
   let resultInput = null;
+  /** @type {ReturnType<typeof initChart> | null} */
+  let channelChart = null;
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let debounceTimer;
   let syncing = false;
@@ -147,6 +154,42 @@ export function initOpacityMatch(root) {
     hideBanner(resultBanner);
   }
 
+  /**
+   * @param {{ r: number, g: number, b: number } | null} baseRgb
+   * @param {{ r: number, g: number, b: number } | null} blendedRgb
+   */
+  function updateChannelChart(baseRgb, blendedRgb) {
+    if (!baseRgb || !blendedRgb) {
+      setHidden(channelChartEl, true);
+      return;
+    }
+
+    const definition = buildChannelChartDefinition(baseRgb, blendedRgb);
+    setHidden(channelChartEl, false);
+
+    const mountOrUpdate = () => {
+      try {
+        if (!channelChart) {
+          channelChart = initChart(channelChartEl, {
+            definition,
+            ariaLabel: "Stacked bar chart of base and blended Red, Green, and Blue values",
+          });
+          if (!channelChart) {
+            delete channelChartEl.dataset.chartsInit;
+          }
+          return;
+        }
+
+        channelChart.update({ definition });
+      } catch {
+        delete channelChartEl.dataset.chartsInit;
+        channelChart = null;
+      }
+    };
+
+    requestAnimationFrame(mountOrUpdate);
+  }
+
   function updateResult(values) {
     blendedHex = null;
     copyResultBtn.disabled = true;
@@ -155,10 +198,13 @@ export function initOpacityMatch(root) {
     const backgroundRgb = values.background ? hexToRgb(values.background) : null;
     const targetRgb = values.target ? hexToRgb(values.target) : null;
     const alpha = values.opacity;
+    /** @type {{ r: number, g: number, b: number } | null} */
+    let blendedRgb = null;
 
     if (targetRgb && backgroundRgb && alpha !== null) {
       const blended = blendOver(targetRgb, backgroundRgb, alpha);
       if (blended) {
+        blendedRgb = blended;
         blendedHex = rgbToHex(blended);
         resultInput?.setValue(blendedHex, { emit: false });
         copyResultBtn.disabled = false;
@@ -170,10 +216,13 @@ export function initOpacityMatch(root) {
         } else {
           setMatchPercent("Enter a base colour to compare.");
         }
+
+        updateChannelChart(baseRgb, blendedRgb);
         return;
       }
     }
 
+    updateChannelChart(null, null);
     resultInput?.setValue("", { emit: false });
     setMatchPercent("Enter target, background, and opacity to preview the blend.");
   }

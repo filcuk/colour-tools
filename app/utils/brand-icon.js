@@ -8,9 +8,9 @@
  * (needed for correct favicon before modules load — see `theme-init.js`).
  */
 export const APP_ICON_SRC = {
-  icon: "app/res/app.svg",
-  light: "",
-  dark: "",
+  icon: "",
+  light: "app/res/app-light.svg",
+  dark: "app/res/app-dark.svg",
 };
 
 /**

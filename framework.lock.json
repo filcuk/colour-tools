@@ -12,7 +12,10 @@
     "dropdown",
     "color-input",
     "color-set",
-    "color-picker"
+    "color-picker",
+    "charts"
   ],
-  "skills": ["*"]
+  "skills": [
+    "*"
+  ]
 }

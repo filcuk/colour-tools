@@ -16,6 +16,14 @@
     </script>
     <script src="app/theme-init.js"></script>
     <link rel="stylesheet" href="app/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "d3-scale": "./app/vendor/d3-scale/d3-scale.esm.js",
+          "d3-shape": "./app/vendor/d3-shape/d3-shape.esm.js"
+        }
+      }
+    </script>
   </head>
   <body>
     <header>
@@ -174,6 +182,8 @@
                       <span class="btn-label-flash__label">Copy</span>
                     </button>
                   </div>
+                  <div class="charts opacity-match-channel-chart hidden" id="opacity-match-channel-chart"
+                    data-charts-height="240" aria-label="Stacked bar chart of base and blended Red, Green, and Blue values" hidden></div>
                 </div>
               </div>
             </div>

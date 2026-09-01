@@ -41,6 +41,11 @@
   cursor: text;
 }
 
+.opacity-match-channel-chart > svg.ts-chart text[data-ts-key="x-label"],
+.opacity-match-channel-chart > svg.ts-chart text[data-ts-key="y-label"] {
+  display: none;
+}
+
 .opacity-match-result-input .color-input-swatch {
   cursor: default;
 }
