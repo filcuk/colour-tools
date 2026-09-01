@@ -3,6 +3,15 @@
  * Add app-specific rules here (or pull in additional local sheets).
  */
 
+:root {
+  --accent: #d75341;
+}
+
+:root[data-theme="dark"] {
+  --accent: #eb8076;
+  --accent-fg: #0d1117;
+}
+
 /* Demo-only code area limit; the reusable component has no height limit. */
 #demo-code-block .code-block-body {
   max-height: 400px;
