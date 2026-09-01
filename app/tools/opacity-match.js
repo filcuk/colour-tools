@@ -7,19 +7,22 @@ import { hideBanner, showBanner } from "../components/banner.js";
 import { initChart } from "../components/charts.js";
 import { initColorInput } from "../components/color-input.js";
 import { initSlider } from "../components/slider.js";
-import { blendOver, solveAlphaBestEffort, solveForeground } from "../utils/blend.js";
+import { blendOver, solveAlphaBestEffort, solveForeground, colorsMatch } from "../utils/blend.js";
 import {
   prepareButtonLabelFlash,
   flashButtonLabel,
+  setButtonLabelFlash,
 } from "../utils/button-label.js";
 import { copyText } from "../utils/clipboard.js";
 import { setHidden } from "../utils/dom.js";
 import { mountIcon } from "../utils/icons.js";
 import { hexToRgb, rgbToHex } from "../utils/color.js";
 import { buildChannelChartDefinition } from "./opacity-match-chart.js";
+import { formatChannelDeviations } from "./opacity-match-chart-data.js";
 
 const COLOR_FIELDS = /** @type {const} */ (["base", "background", "target"]);
 const DEBOUNCE_MS = 150;
+const STATE_STORAGE_KEY = "colour-tools-opacity-match";
 const RESULT_BANNER_TONES = /** @type {const} */ ({
   warning: "banner-warning",
   error: "banner-error",
@@ -34,7 +37,7 @@ const RESULT_BANNER_ICONS = /** @type {const} */ ({
 /**
  * @param {{ r: number, g: number, b: number }} a
  * @param {{ r: number, g: number, b: number }} b
- * @returns {number} Whole-number match percentage from 0 to 100.
+ * @returns {number} Match percentage from 0 to 100, one decimal place.
  */
 function colorMatchPercent(a, b) {
   const dr = a.r - b.r;
@@ -42,7 +45,16 @@ function colorMatchPercent(a, b) {
   const db = a.b - b.b;
   const distance = Math.sqrt(dr * dr + dg * dg + db * db);
   const maxDistance = Math.sqrt(3 * 255 * 255);
-  return Math.max(0, Math.min(100, Math.round(100 - (distance / maxDistance) * 100)));
+  const raw = Math.max(0, Math.min(100, 100 - (distance / maxDistance) * 100));
+  return Math.round(raw * 10) / 10;
+}
+
+/**
+ * @param {number} percent
+ * @returns {string}
+ */
+function formatMatchPercent(percent) {
+  return `${percent.toFixed(1)}%`;
 }
 
 /**
@@ -58,6 +70,98 @@ function readOpacityPercent(opacityInput) {
 }
 
 /**
+ * @param {string | null | undefined} value
+ * @returns {value is string}
+ */
+function isValidHexColor(value) {
+  return typeof value === "string" && hexToRgb(value) !== null;
+}
+
+/**
+ * @returns {{ base?: string, background?: string, target?: string, opacityPercent?: number } | null}
+ */
+function readSavedState() {
+  try {
+    const raw = localStorage.getItem(STATE_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data && typeof data === "object" ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {{
+ *   base: string | null,
+ *   background: string | null,
+ *   target: string | null,
+ *   opacityPercent: number | null,
+ * }} values
+ */
+function persistState(values) {
+  try {
+    const payload = { ...(readSavedState() ?? {}) };
+    if (isValidHexColor(values.base)) payload.base = values.base;
+    if (isValidHexColor(values.background)) payload.background = values.background;
+    if (isValidHexColor(values.target)) payload.target = values.target;
+    if (values.opacityPercent !== null && Number.isFinite(values.opacityPercent)) {
+      payload.opacityPercent = values.opacityPercent;
+    }
+    localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore quota / private-mode errors.
+  }
+}
+
+/**
+ * @param {HTMLElement | null} wrap
+ */
+function lockReadOnlyColorField(wrap) {
+  const field = wrap?.querySelector(".color-input-field");
+  if (!(field instanceof HTMLInputElement)) return;
+
+  field.readOnly = true;
+  field.addEventListener("beforeinput", (event) => {
+    event.preventDefault();
+  });
+  field.addEventListener("keydown", (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (
+      event.key === "Tab" ||
+      event.key.startsWith("Arrow") ||
+      event.key === "Home" ||
+      event.key === "End" ||
+      event.key === "PageUp" ||
+      event.key === "PageDown"
+    ) {
+      return;
+    }
+    event.preventDefault();
+  });
+}
+
+/**
+ * @param {HTMLButtonElement} button
+ */
+function wireCalcButtonTooltipNowrap(button) {
+  const tooltipNowrapClass = "opacity-match-tooltip-nowrap";
+
+  const enableNowrap = () => {
+    document.getElementById("tooltip")?.classList.add(tooltipNowrapClass);
+  };
+
+  const disableNowrap = () => {
+    document.getElementById("tooltip")?.classList.remove(tooltipNowrapClass);
+  };
+
+  button.addEventListener("pointerenter", enableNowrap);
+  button.addEventListener("focusin", enableNowrap);
+  button.addEventListener("pointerleave", disableNowrap);
+  button.addEventListener("focusout", disableNowrap);
+}
+
+/**
  * @param {HTMLElement} root
  */
 export function initOpacityMatch(root) {
@@ -69,11 +173,12 @@ export function initOpacityMatch(root) {
     target: root.querySelector("#opacity-match-target-wrap"),
   };
   const resultWrap = root.querySelector("#opacity-match-result-wrap");
+  const outputWrap = root.querySelector("#opacity-match-output-wrap");
   const opacitySliderEl = root.querySelector("#opacity-match-opacity");
   const opacityInput = opacitySliderEl?.querySelector(".slider-input");
   const calcTargetBtn = root.querySelector("#opacity-match-calc-target");
   const calcOpacityBtn = root.querySelector("#opacity-match-calc-opacity");
-  const copyResultBtn = root.querySelector("#opacity-match-copy-result");
+  const copyOutputBtn = root.querySelector("#opacity-match-copy-output");
   const matchPercentEl = root.querySelector("#opacity-match-match-percent");
   const resultBanner = root.querySelector("#opacity-match-result-banner");
   const resultBannerBody = root.querySelector("#opacity-match-result-banner-body");
@@ -85,11 +190,12 @@ export function initOpacityMatch(root) {
     !wraps.background ||
     !wraps.target ||
     !resultWrap ||
+    !outputWrap ||
     !opacitySliderEl ||
     !opacityInput ||
     !calcTargetBtn ||
     !calcOpacityBtn ||
-    !copyResultBtn ||
+    !copyOutputBtn ||
     !matchPercentEl ||
     !resultBanner ||
     !resultBannerBody ||
@@ -103,13 +209,18 @@ export function initOpacityMatch(root) {
   let opacitySlider = null;
   /** @type {ReturnType<typeof initColorInput> | null} */
   let resultInput = null;
+  /** @type {ReturnType<typeof initColorInput> | null} */
+  let outputInput = null;
   /** @type {ReturnType<typeof initChart> | null} */
   let channelChart = null;
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let debounceTimer;
   let syncing = false;
+  let persistEnabled = false;
   /** @type {string | null} */
-  let blendedHex = null;
+  let outputHex = null;
+
+  const savedState = readSavedState();
 
   /** @type {Record<"base" | "background" | "target", ReturnType<typeof initColorInput> | null>} */
   const colorInputs = {
@@ -156,15 +267,16 @@ export function initOpacityMatch(root) {
 
   /**
    * @param {{ r: number, g: number, b: number } | null} baseRgb
+   * @param {{ r: number, g: number, b: number } | null} targetRgb
    * @param {{ r: number, g: number, b: number } | null} blendedRgb
    */
-  function updateChannelChart(baseRgb, blendedRgb) {
-    if (!baseRgb || !blendedRgb) {
+  function updateChannelChart(baseRgb, targetRgb, blendedRgb) {
+    if (!baseRgb || !targetRgb || !blendedRgb) {
       setHidden(channelChartEl, true);
       return;
     }
 
-    const definition = buildChannelChartDefinition(baseRgb, blendedRgb);
+    const definition = buildChannelChartDefinition(baseRgb, targetRgb, blendedRgb);
     setHidden(channelChartEl, false);
 
     const mountOrUpdate = () => {
@@ -172,7 +284,7 @@ export function initOpacityMatch(root) {
         if (!channelChart) {
           channelChart = initChart(channelChartEl, {
             definition,
-            ariaLabel: "Stacked bar chart of base and blended Red, Green, and Blue values",
+            ariaLabel: "Grouped bar chart of base, target, and blended Red, Green, and Blue values",
           });
           if (!channelChart) {
             delete channelChartEl.dataset.chartsInit;
@@ -191,46 +303,60 @@ export function initOpacityMatch(root) {
   }
 
   function updateResult(values) {
-    blendedHex = null;
-    copyResultBtn.disabled = true;
+    outputHex = null;
+    copyOutputBtn.disabled = true;
 
     const baseRgb = values.base ? hexToRgb(values.base) : null;
     const backgroundRgb = values.background ? hexToRgb(values.background) : null;
     const targetRgb = values.target ? hexToRgb(values.target) : null;
     const alpha = values.opacity;
-    /** @type {{ r: number, g: number, b: number } | null} */
-    let blendedRgb = null;
+
+    if (targetRgb && alpha !== null) {
+      outputHex = rgbToHex({ ...targetRgb, a: alpha }, { alpha: true });
+      outputInput?.setValue(outputHex, { emit: false });
+      copyOutputBtn.disabled = false;
+    } else {
+      outputInput?.setValue("", { emit: false });
+    }
 
     if (targetRgb && backgroundRgb && alpha !== null) {
       const blended = blendOver(targetRgb, backgroundRgb, alpha);
       if (blended) {
-        blendedRgb = blended;
-        blendedHex = rgbToHex(blended);
-        resultInput?.setValue(blendedHex, { emit: false });
-        copyResultBtn.disabled = false;
+        resultInput?.setValue(rgbToHex(blended), { emit: false });
 
         if (baseRgb) {
           const percent = colorMatchPercent(blended, baseRgb);
-          setMatchPercent(`${percent}% match to base`);
-          matchPercentEl.dataset.match = percent === 100 ? "yes" : "partial";
+          const deviations = formatChannelDeviations(blended, baseRgb);
+          const deviationSuffix = deviations ? ` (${deviations})` : "";
+          setMatchPercent(`${formatMatchPercent(percent)} match to base${deviationSuffix}`);
+          matchPercentEl.dataset.match = colorsMatch(blended, baseRgb, 0) ? "yes" : "partial";
         } else {
           setMatchPercent("Enter a base colour to compare.");
         }
 
-        updateChannelChart(baseRgb, blendedRgb);
+        updateChannelChart(baseRgb, targetRgb, blended);
         return;
       }
     }
 
-    updateChannelChart(null, null);
+    updateChannelChart(null, null, null);
     resultInput?.setValue("", { emit: false });
-    setMatchPercent("Enter target, background, and opacity to preview the blend.");
+
+    if (targetRgb && alpha !== null && !backgroundRgb) {
+      setMatchPercent("Enter background colour to preview the blend.");
+    } else if (!targetRgb || alpha === null) {
+      setMatchPercent("Enter target and opacity for output colour.");
+    } else {
+      setMatchPercent("Enter target, background, and opacity to preview the blend.");
+    }
   }
 
   function refreshPreview() {
     if (syncing) return;
     clearResultBanner();
-    updateResult(readValues());
+    const values = readValues();
+    updateResult(values);
+    if (persistEnabled) persistState(values);
   }
 
   function scheduleRefreshPreview() {
@@ -238,13 +364,17 @@ export function initOpacityMatch(root) {
     debounceTimer = setTimeout(refreshPreview, DEBOUNCE_MS);
   }
 
-  async function copyBlendedResult() {
-    if (!blendedHex) return;
+  async function copyOutputColour() {
+    if (!outputHex) return;
 
-    const ok = await copyText(blendedHex);
-    flashButtonLabel(copyResultBtn, ok, {
+    const ok = await copyText(outputHex);
+    flashButtonLabel(copyOutputBtn, ok, {
       success: "Copied",
       fail: "Failed",
+      reset: () => {
+        copyOutputBtn.setAttribute("aria-label", "Copy output colour");
+        setButtonLabelFlash(copyOutputBtn, "Copy");
+      },
     });
   }
 
@@ -282,15 +412,15 @@ export function initOpacityMatch(root) {
     updateResult(readValues());
 
     const reblended = blendOver(solved, backgroundRgb, values.opacity);
-    const matchPercent =
-      reblended && baseRgb ? colorMatchPercent(reblended, baseRgb) : null;
-
-    if (matchPercent !== null && matchPercent < 100) {
+    if (reblended && !colorsMatch(reblended, baseRgb, 0)) {
+      const matchPercent = colorMatchPercent(reblended, baseRgb);
       setResultBanner(
-        `No exact target exists at this opacity — this is the closest match (${matchPercent}%).`,
+        `No exact target exists at this opacity — this is the closest match (${formatMatchPercent(matchPercent)}).`,
         "warning"
       );
     }
+
+    persistState(readValues());
   }
 
   function calculateOpacity() {
@@ -328,55 +458,64 @@ export function initOpacityMatch(root) {
       updated.target && updated.background && updated.opacity !== null
         ? blendOver(hexToRgb(updated.target), hexToRgb(updated.background), updated.opacity)
         : null;
-    const matchPercent = blended ? colorMatchPercent(blended, baseRgb) : null;
 
-    if (!exact) {
+    if (!exact && blended && !colorsMatch(blended, baseRgb, 0)) {
+      const matchPercent = colorMatchPercent(blended, baseRgb);
       setResultBanner(
-        matchPercent === null
-          ? "No exact opacity matches base on this background — using closest match."
-          : `No exact opacity matches base on this background — using closest match (${matchPercent}% match).`,
+        `No exact opacity matches base on this background — using closest match (${formatMatchPercent(matchPercent)} match).`,
+        "warning"
+      );
+    } else if (!exact && !blended) {
+      setResultBanner(
+        "No exact opacity matches base on this background — using closest match.",
         "warning"
       );
     }
+
+    persistState(readValues());
+  }
+
+  function restoreSavedState() {
+    syncing = true;
+    if (isValidHexColor(savedState?.base)) {
+      colorInputs.base?.setValue(savedState.base, { emit: false });
+    }
+    if (isValidHexColor(savedState?.background)) {
+      colorInputs.background?.setValue(savedState.background, { emit: false });
+    }
+    if (isValidHexColor(savedState?.target)) {
+      colorInputs.target?.setValue(savedState.target, { emit: false });
+    }
+    if (typeof savedState?.opacityPercent === "number" && Number.isFinite(savedState.opacityPercent)) {
+      opacitySlider?.setValue(savedState.opacityPercent, { emit: false });
+    }
+    syncing = false;
   }
 
   COLOR_FIELDS.forEach((key) => {
+    const savedColor = savedState?.[key];
     colorInputs[key] = initColorInput(wraps[key], {
+      defaultValue: isValidHexColor(savedColor) ? savedColor : undefined,
       onChange: refreshPreview,
       onInput: scheduleRefreshPreview,
     });
   });
 
   resultInput = initColorInput(resultWrap);
-
-  const resultField = resultWrap.querySelector(".color-input-field");
-  if (resultField instanceof HTMLInputElement) {
-    resultField.readOnly = true;
-    resultField.addEventListener("beforeinput", (event) => {
-      event.preventDefault();
-    });
-    resultField.addEventListener("keydown", (event) => {
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      if (
-        event.key === "Tab" ||
-        event.key.startsWith("Arrow") ||
-        event.key === "Home" ||
-        event.key === "End" ||
-        event.key === "PageUp" ||
-        event.key === "PageDown"
-      ) {
-        return;
-      }
-      event.preventDefault();
-    });
-  }
+  outputInput = initColorInput(outputWrap);
+  lockReadOnlyColorField(resultWrap);
+  lockReadOnlyColorField(outputWrap);
 
   opacitySlider = initSlider(opacitySliderEl, {
+    defaultValue:
+      typeof savedState?.opacityPercent === "number" && Number.isFinite(savedState.opacityPercent)
+        ? savedState.opacityPercent
+        : undefined,
     onInput: scheduleRefreshPreview,
     onChange: refreshPreview,
   });
 
-  prepareButtonLabelFlash(copyResultBtn, {
+  prepareButtonLabelFlash(copyOutputBtn, {
     idle: "Copy",
     success: "Copied",
     fail: "Failed",
@@ -384,8 +523,12 @@ export function initOpacityMatch(root) {
 
   calcTargetBtn.addEventListener("click", calculateTarget);
   calcOpacityBtn.addEventListener("click", calculateOpacity);
-  copyResultBtn.addEventListener("click", copyBlendedResult);
+  copyOutputBtn.addEventListener("click", copyOutputColour);
+  wireCalcButtonTooltipNowrap(calcTargetBtn);
+  wireCalcButtonTooltipNowrap(calcOpacityBtn);
 
+  restoreSavedState();
+  persistEnabled = true;
   refreshPreview();
 
   return { calculateTarget, calculateOpacity, refreshPreview };

@@ -111,49 +111,57 @@
                 </div>
                 <hr class="panel-divider" />
                 <div class="panel-grid panel-grid-2 opacity-match-grid">
-                  <div class="field">
-                    <div class="slider" id="opacity-match-opacity" data-slider-min="0" data-slider-max="100"
-                      data-slider-default="50" data-slider-format="percentage">
-                      <label class="field-label" for="opacity-match-opacity-range">Opacity</label>
-                      <div class="slider-row">
-                        <input type="range" id="opacity-match-opacity-range" class="slider-range" />
-                        <div class="slider-input-wrap">
-                          <input type="text" class="input slider-input" inputmode="numeric"
-                            aria-label="Opacity percent" aria-describedby="opacity-match-opacity-hint" />
-                          <span class="slider-suffix hidden" aria-hidden="true">%</span>
+                  <div class="opacity-match-input-field">
+                    <div class="field opacity-match-opacity-field">
+                      <div class="slider" id="opacity-match-opacity" data-slider-min="0" data-slider-max="100"
+                        data-slider-default="50" data-slider-format="percentage">
+                        <label class="field-label" for="opacity-match-opacity-range">Opacity</label>
+                        <div class="slider-row">
+                          <input type="range" id="opacity-match-opacity-range" class="slider-range" />
+                          <div class="slider-input-wrap">
+                            <input type="text" class="input slider-input" inputmode="numeric"
+                              aria-label="Opacity percent" aria-describedby="opacity-match-opacity-hint" />
+                            <span class="slider-suffix hidden" aria-hidden="true">%</span>
+                          </div>
+                          <input type="hidden" class="slider-value" />
                         </div>
-                        <input type="hidden" class="slider-value" />
                       </div>
                     </div>
-                    <button type="button" class="btn btn-primary" id="opacity-match-calc-target">Calculate Target</button>
                     <p class="panel-hint" id="opacity-match-opacity-hint">Layer opacity for the target colour.</p>
+                    <button type="button" class="btn btn-primary opacity-match-calc-btn" id="opacity-match-calc-target"
+                      data-tooltip="Use set opacity to calculate closest target colour match"
+                      data-tooltip-position="top">Calculate Target</button>
                   </div>
-                  <div class="color-input" id="opacity-match-target-wrap" data-color-input-open="picker">
-                    <label class="field-label" for="opacity-match-target">Target colour</label>
-                    <div class="color-input-control">
-                      <span class="color-input-swatch" aria-hidden="true"></span>
-                      <input type="text" id="opacity-match-target" class="input color-input-field" value=""
-                        placeholder="#RRGGBB" autocomplete="off" spellcheck="false"
-                        aria-describedby="opacity-match-target-hint" />
-                      <input type="hidden" class="color-input-value" />
-                    </div>
-                    <div class="color-picker" data-color-picker-color-set>
-                      <button type="button" class="btn color-picker-trigger" aria-expanded="false"
-                        aria-label="Open colour picker">Colour picker</button>
-                      <div class="color-picker-popup hidden" role="dialog" aria-label="Colour picker" hidden>
-                        <div class="color-picker-shell">
-                          <div class="color-picker-panel"></div>
-                          <div class="color-set color-picker-sets hidden" data-color-set-embedded hidden>
-                            <div class="color-set-panel">
-                              <select class="input color-set-select" aria-label="Colour set"></select>
-                              <div class="color-set-grid" role="listbox" aria-label="Colours"></div>
+                  <div class="opacity-match-input-field">
+                    <div class="color-input" id="opacity-match-target-wrap" data-color-input-open="picker">
+                      <label class="field-label" for="opacity-match-target">Target colour</label>
+                      <div class="color-input-control">
+                        <span class="color-input-swatch" aria-hidden="true"></span>
+                        <input type="text" id="opacity-match-target" class="input color-input-field" value=""
+                          placeholder="#RRGGBB" autocomplete="off" spellcheck="false"
+                          aria-describedby="opacity-match-target-hint" />
+                        <input type="hidden" class="color-input-value" />
+                      </div>
+                      <div class="color-picker" data-color-picker-color-set>
+                        <button type="button" class="btn color-picker-trigger" aria-expanded="false"
+                          aria-label="Open colour picker">Colour picker</button>
+                        <div class="color-picker-popup hidden" role="dialog" aria-label="Colour picker" hidden>
+                          <div class="color-picker-shell">
+                            <div class="color-picker-panel"></div>
+                            <div class="color-set color-picker-sets hidden" data-color-set-embedded hidden>
+                              <div class="color-set-panel">
+                                <select class="input color-set-select" aria-label="Colour set"></select>
+                                <div class="color-set-grid" role="listbox" aria-label="Colours"></div>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <button type="button" class="btn btn-primary" id="opacity-match-calc-opacity">Calculate Opacity</button>
                     <p class="panel-hint" id="opacity-match-target-hint">The opaque colour to apply at that opacity.</p>
+                    <button type="button" class="btn btn-primary opacity-match-calc-btn" id="opacity-match-calc-opacity"
+                      data-tooltip="Use set target colour to calculate closest opacity match"
+                      data-tooltip-position="top">Calculate Opacity</button>
                   </div>
                 </div>
                 </div>
@@ -163,27 +171,48 @@
                   <span class="banner-body" id="opacity-match-result-banner-body"></span>
                 </div>
                 <div class="section-panel">
-                  <div class="color-input opacity-match-result-input" id="opacity-match-result-wrap"
-                    data-color-input-open="none">
-                    <label class="field-label" for="opacity-match-result">Blended result</label>
-                    <div class="color-input-control">
-                      <span class="color-input-swatch" aria-hidden="true"></span>
-                      <input type="text" id="opacity-match-result" class="input color-input-field" value=""
-                        placeholder="#RRGGBB" autocomplete="off" spellcheck="false" readonly
-                        aria-readonly="true" aria-describedby="opacity-match-match-percent" />
-                      <input type="hidden" class="color-input-value" />
+                  <div class="panel-grid panel-grid-2 opacity-match-grid">
+                    <div class="opacity-match-result-field">
+                      <label class="field-label" for="opacity-match-result">Blended result</label>
+                      <div class="opacity-match-result-input-row">
+                        <div class="color-input opacity-match-result-input" id="opacity-match-result-wrap"
+                          data-color-input-open="none">
+                          <div class="color-input-control">
+                            <span class="color-input-swatch" aria-hidden="true"></span>
+                            <input type="text" id="opacity-match-result" class="input color-input-field" value=""
+                              placeholder="#RRGGBB" autocomplete="off" spellcheck="false" readonly
+                              aria-readonly="true" aria-describedby="opacity-match-match-percent" />
+                            <input type="hidden" class="color-input-value" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="opacity-match-result-field">
+                      <label class="field-label" for="opacity-match-output">Output colour</label>
+                      <div class="opacity-match-result-input-row">
+                        <div class="color-input opacity-match-result-input" id="opacity-match-output-wrap"
+                          data-color-input-open="none" data-color-input-alpha>
+                          <div class="color-input-control">
+                            <span class="color-input-swatch" aria-hidden="true"></span>
+                            <input type="text" id="opacity-match-output" class="input color-input-field" value=""
+                              placeholder="#RRGGBBAA" autocomplete="off" spellcheck="false" readonly
+                              aria-readonly="true" aria-describedby="opacity-match-output-hint" />
+                            <input type="hidden" class="color-input-value" />
+                          </div>
+                        </div>
+                        <button type="button" class="btn btn-label-flash" id="opacity-match-copy-output"
+                          aria-label="Copy output colour" disabled>
+                          <span data-icon="copy" data-icon-class="btn-icon-svg" aria-hidden="true"></span>
+                          <span class="btn-label-flash__label">Copy</span>
+                        </button>
+                      </div>
+                      <p class="panel-hint" id="opacity-match-output-hint">The colour to use in your application.</p>
                     </div>
                   </div>
-                  <div class="panel-row panel-row--spread opacity-match-result-actions">
-                    <p class="panel-hint opacity-match-match-percent" id="opacity-match-match-percent"
-                      aria-live="polite"></p>
-                    <button type="button" class="btn btn-label-flash" id="opacity-match-copy-result"
-                      aria-label="Copy blended result" disabled>
-                      <span class="btn-label-flash__label">Copy</span>
-                    </button>
-                  </div>
+                  <p class="panel-hint opacity-match-match-percent" id="opacity-match-match-percent"
+                    aria-live="polite"></p>
                   <div class="charts opacity-match-channel-chart hidden" id="opacity-match-channel-chart"
-                    data-charts-height="240" aria-label="Stacked bar chart of base and blended Red, Green, and Blue values" hidden></div>
+                    data-charts-height="240" aria-label="Grouped bar chart of base, target, and blended Red, Green, and Blue values" hidden></div>
                 </div>
               </div>
             </div>

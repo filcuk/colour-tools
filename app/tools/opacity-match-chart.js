@@ -1,16 +1,16 @@
 /**
- * Horizontal stacked bar chart — base channel value with a difference segment.
+ * Horizontal grouped bar chart — base, target, and blended channel values.
  */
 
 import { defineChart } from "../vendor/tanstack-charts/scene.js";
 import { barX } from "../vendor/tanstack-charts/bar.js";
-import { stack } from "../vendor/tanstack-charts/stack.js";
+import { group } from "../vendor/tanstack-charts/group.js";
 import { tooltip } from "../vendor/tanstack-charts/tooltip.js";
 import { scaleBand } from "../vendor/tanstack-charts/scales/band.js";
 import { scaleLinear } from "../vendor/tanstack-charts/scales/linear.js";
 import {
-  buildChannelStackRows,
-  STACK_SERIES_ORDER,
+  BAR_SERIES_ORDER,
+  buildChannelBarRows,
   withAlpha,
 } from "./opacity-match-chart-data.js";
 
@@ -21,15 +21,16 @@ const CHANNEL_VALUE_TICKS = Array.from({ length: 18 }, (_, index) => index * 15)
 
 /**
  * @param {{ r: number, g: number, b: number }} base
+ * @param {{ r: number, g: number, b: number }} target
  * @param {{ r: number, g: number, b: number }} blended
  */
-export function buildChannelChartDefinition(base, blended) {
-  const rows = buildChannelStackRows(base, blended);
+export function buildChannelChartDefinition(base, target, blended) {
+  const rows = buildChannelBarRows(base, target, blended);
 
   return defineChart({
     color: {
-      domain: [...STACK_SERIES_ORDER],
-      range: ["var(--accent)", "var(--muted)"],
+      domain: [...BAR_SERIES_ORDER],
+      range: ["var(--accent)", "var(--muted)", "var(--text)"],
     },
     marks: [
       barX(rows, {
@@ -37,14 +38,15 @@ export function buildChannelChartDefinition(base, blended) {
         x: "value",
         y: "channel",
         z: "series",
-        fill: (datum) =>
-          datum.series === "Base"
-            ? datum.channelColor
-            : withAlpha(datum.channelColor, 0.72),
-        layout: stack({ order: [...STACK_SERIES_ORDER] }),
-        radius: 4,
-        maxThickness: 28,
-        inset: 0.22,
+        fill: (datum) => {
+          if (datum.series === "Base") return datum.channelColor;
+          if (datum.series === "Target") return withAlpha(datum.channelColor, 0.72);
+          return withAlpha(datum.channelColor, 0.45);
+        },
+        layout: group({ padding: 0.1 }),
+        radius: 3,
+        maxThickness: 18,
+        inset: 0.12,
       }),
     ],
     x: {

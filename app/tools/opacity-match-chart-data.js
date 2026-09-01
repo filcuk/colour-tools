@@ -4,8 +4,8 @@ const CHANNELS = /** @type {const} */ ([
   { key: "b", label: "Blue", color: "#3b82f6" },
 ]);
 
-/** @type {readonly ["Base", "Difference"]} */
-export const STACK_SERIES_ORDER = ["Base", "Difference"];
+/** @type {readonly ["Base", "Target", "Blended"]} */
+export const BAR_SERIES_ORDER = ["Base", "Target", "Blended"];
 
 /**
  * @param {string} hex `#RRGGBB`
@@ -21,38 +21,45 @@ export function withAlpha(hex, alpha) {
 }
 
 /**
- * Stack rows per channel: base (lower) value plus a difference segment on top.
- * Total bar height equals max(base, blended), so small gaps read as a thin slice.
- *
+ * @param {{ r: number, g: number, b: number }} blended
  * @param {{ r: number, g: number, b: number }} base
+ * @returns {string} e.g. "red +1, green −2, blue −5"
+ */
+export function formatChannelDeviations(blended, base) {
+  return CHANNELS.map(({ key, label }) => {
+    const delta = blended[key] - base[key];
+    const sign = delta > 0 ? "+" : "";
+    return { label, text: `${label.toLowerCase()} ${sign}${delta}`, delta };
+  })
+    .filter(({ delta }) => delta !== 0)
+    .map(({ text }) => text)
+    .join(", ");
+}
+
+/**
+ * @param {{ r: number, g: number, b: number }} base
+ * @param {{ r: number, g: number, b: number }} target
  * @param {{ r: number, g: number, b: number }} blended
  */
-export function buildChannelStackRows(base, blended) {
-  return CHANNELS.flatMap(({ key, label, color }) => {
-    const baseValue = base[key];
-    const blendedValue = blended[key];
-    const lower = Math.min(baseValue, blendedValue);
-    const delta = Math.abs(blendedValue - baseValue);
-
-    return [
-      {
-        channel: label,
-        series: "Base",
-        value: lower,
-        base: baseValue,
-        blended: blendedValue,
-        delta,
-        channelColor: color,
-      },
-      {
-        channel: label,
-        series: "Difference",
-        value: delta,
-        base: baseValue,
-        blended: blendedValue,
-        delta,
-        channelColor: color,
-      },
-    ];
-  });
+export function buildChannelBarRows(base, target, blended) {
+  return CHANNELS.flatMap(({ key, label, color }) => [
+    {
+      channel: label,
+      series: "Base",
+      value: base[key],
+      channelColor: color,
+    },
+    {
+      channel: label,
+      series: "Target",
+      value: target[key],
+      channelColor: color,
+    },
+    {
+      channel: label,
+      series: "Blended",
+      value: blended[key],
+      channelColor: color,
+    },
+  ]);
 }

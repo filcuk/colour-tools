@@ -29,11 +29,61 @@
   font-weight: 600;
 }
 
-.opacity-match-result-actions {
-  align-items: center;
+.opacity-match-input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
-.opacity-match-result-actions .opacity-match-match-percent {
+.opacity-match-opacity-field {
+  max-width: none;
+}
+
+.opacity-match-calc-btn {
+  width: 100%;
+  margin-top: 0.65rem;
+}
+
+.tooltip.opacity-match-tooltip-nowrap {
+  max-width: none;
+}
+
+.tooltip.opacity-match-tooltip-nowrap .tooltip__label {
+  white-space: nowrap;
+}
+
+.opacity-match-result-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.opacity-match-result-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.opacity-match-result-input-row .btn-label-flash > [data-icon] {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.opacity-match-result-input-row .btn-label-flash .btn-icon-svg {
+  display: block;
+}
+
+.opacity-match-result-input-row .opacity-match-result-input {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.opacity-match-match-percent {
   margin: 0;
 }
 
