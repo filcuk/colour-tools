@@ -12,29 +12,35 @@
   --accent-fg: #0d1117;
 }
 
-.opacity-match-preview {
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1.25rem;
+#tool-nav .segmented-control-panels {
+  border: none;
+  background: transparent;
+  overflow: visible;
 }
 
-.opacity-match-preview-item {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+#tool-nav .segmented-control-panel {
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
 }
 
-.opacity-match-preview-swatch {
-  block-size: 4rem;
-  inline-size: 4rem;
-}
-
-.opacity-match-preview-match[data-match="yes"] {
+.opacity-match-match-percent[data-match="yes"] {
   color: var(--accent);
   font-weight: 600;
 }
 
-.opacity-match-preview-match[data-match="no"] {
-  color: var(--muted);
+.opacity-match-result-actions {
+  align-items: center;
+}
+
+.opacity-match-result-actions .opacity-match-match-percent {
+  margin: 0;
+}
+
+.opacity-match-result-input .color-input-field[readonly] {
+  cursor: text;
+}
+
+.opacity-match-result-input .color-input-swatch {
+  cursor: default;
 }

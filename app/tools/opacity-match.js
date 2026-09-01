@@ -1,48 +1,45 @@
 /**
- * Opacity match — given three of base, background, opacity, and target colour,
- * calculate the fourth using sRGB channel blending.
+ * Opacity match — given base, background, and either opacity or target colour,
+ * calculate the other using sRGB channel blending.
  */
 
+import { hideBanner, showBanner } from "../components/banner.js";
 import { initColorInput } from "../components/color-input.js";
 import { initSlider } from "../components/slider.js";
-import { blendOver, colorsMatch, solveAlpha, solveForeground } from "../utils/blend.js";
-import { hexToRgb, parseHexColor, rgbToHex } from "../utils/color.js";
-
-/** @typedef {"base" | "background" | "opacity" | "target"} FieldKey */
+import { blendOver, solveAlphaBestEffort, solveForeground } from "../utils/blend.js";
+import {
+  prepareButtonLabelFlash,
+  flashButtonLabel,
+} from "../utils/button-label.js";
+import { copyText } from "../utils/clipboard.js";
+import { mountIcon } from "../utils/icons.js";
+import { hexToRgb, rgbToHex } from "../utils/color.js";
 
 const COLOR_FIELDS = /** @type {const} */ (["base", "background", "target"]);
-const MATCH_TOLERANCE = 2;
 const DEBOUNCE_MS = 150;
+const RESULT_BANNER_TONES = /** @type {const} */ ({
+  warning: "banner-warning",
+  error: "banner-error",
+  info: "banner-info",
+});
+const RESULT_BANNER_ICONS = /** @type {const} */ ({
+  warning: "warning",
+  error: "error",
+  info: "info",
+});
 
 /**
- * @param {{ r: number, g: number, b: number }} result
- * @param {{ r: number, g: number, b: number }} foreground
- * @param {number} alpha
- * @returns {{ r: number, g: number, b: number } | null}
+ * @param {{ r: number, g: number, b: number }} a
+ * @param {{ r: number, g: number, b: number }} b
+ * @returns {number} Whole-number match percentage from 0 to 100.
  */
-function solveBackground(result, foreground, alpha) {
-  if (!Number.isFinite(alpha) || alpha < 0 || alpha >= 1) return null;
-  const inv = 1 - alpha;
-  return {
-    r: Math.max(0, Math.min(255, Math.round((result.r - foreground.r * alpha) / inv))),
-    g: Math.max(0, Math.min(255, Math.round((result.g - foreground.g * alpha) / inv))),
-    b: Math.max(0, Math.min(255, Math.round((result.b - foreground.b * alpha) / inv))),
-  };
-}
-
-/**
- * @param {HTMLElement | null | undefined} swatchEl
- * @param {string | null} hex
- */
-function paintSwatch(swatchEl, hex) {
-  if (!swatchEl) return;
-  const parsed = hex ? parseHexColor(hex) : null;
-  swatchEl.classList.toggle("is-empty", !parsed);
-  if (parsed) {
-    swatchEl.style.setProperty("--color-input-preview", parsed);
-  } else {
-    swatchEl.style.removeProperty("--color-input-preview");
-  }
+function colorMatchPercent(a, b) {
+  const dr = a.r - b.r;
+  const dg = a.g - b.g;
+  const db = a.b - b.b;
+  const distance = Math.sqrt(dr * dr + dg * dg + db * db);
+  const maxDistance = Math.sqrt(3 * 255 * 255);
+  return Math.max(0, Math.min(100, Math.round(100 - (distance / maxDistance) * 100)));
 }
 
 /**
@@ -58,73 +55,6 @@ function readOpacityPercent(opacityInput) {
 }
 
 /**
- * @param {FieldKey | null} emptyField
- * @param {{
- *   base: string | null,
- *   background: string | null,
- *   target: string | null,
- *   opacity: number | null,
- * }} values
- * @returns {{ field: FieldKey, value: string | number } | null}
- */
-function computeMissing(emptyField, values) {
-  const baseRgb = values.base ? hexToRgb(values.base) : null;
-  const backgroundRgb = values.background ? hexToRgb(values.background) : null;
-  const targetRgb = values.target ? hexToRgb(values.target) : null;
-  const alpha = values.opacity;
-
-  if (!emptyField) return null;
-
-  switch (emptyField) {
-    case "target": {
-      if (!baseRgb || !backgroundRgb || alpha === null) return null;
-      const solved = solveForeground(baseRgb, backgroundRgb, alpha);
-      if (!solved) return null;
-      return { field: "target", value: rgbToHex(solved) };
-    }
-    case "opacity": {
-      if (!baseRgb || !backgroundRgb || !targetRgb) return null;
-      const solvedAlpha = solveAlpha(baseRgb, targetRgb, backgroundRgb);
-      if (solvedAlpha === null) return null;
-      return { field: "opacity", value: Math.round(solvedAlpha * 100) };
-    }
-    case "base": {
-      if (!targetRgb || !backgroundRgb || alpha === null) return null;
-      const blended = blendOver(targetRgb, backgroundRgb, alpha);
-      if (!blended) return null;
-      return { field: "base", value: rgbToHex(blended) };
-    }
-    case "background": {
-      if (!baseRgb || !targetRgb || alpha === null) return null;
-      const solved = solveBackground(baseRgb, targetRgb, alpha);
-      if (!solved) return null;
-      return { field: "background", value: rgbToHex(solved) };
-    }
-    default:
-      return null;
-  }
-}
-
-/**
- * @param {FieldKey} field
- * @returns {string}
- */
-function labelForField(field) {
-  switch (field) {
-    case "base":
-      return "base colour";
-    case "background":
-      return "background colour";
-    case "opacity":
-      return "opacity";
-    case "target":
-      return "target colour";
-    default:
-      return field;
-  }
-}
-
-/**
  * @param {HTMLElement} root
  */
 export function initOpacityMatch(root) {
@@ -135,29 +65,44 @@ export function initOpacityMatch(root) {
     background: root.querySelector("#opacity-match-background-wrap"),
     target: root.querySelector("#opacity-match-target-wrap"),
   };
+  const resultWrap = root.querySelector("#opacity-match-result-wrap");
   const opacitySliderEl = root.querySelector("#opacity-match-opacity");
   const opacityInput = opacitySliderEl?.querySelector(".slider-input");
-  const statusEl = root.querySelector("#opacity-match-status");
-  const previewBlendedSwatch = root.querySelector("#opacity-match-preview-blended");
-  const previewBaseSwatch = root.querySelector("#opacity-match-preview-base");
-  const previewMatchEl = root.querySelector("#opacity-match-preview-match");
+  const calcTargetBtn = root.querySelector("#opacity-match-calc-target");
+  const calcOpacityBtn = root.querySelector("#opacity-match-calc-opacity");
+  const copyResultBtn = root.querySelector("#opacity-match-copy-result");
+  const matchPercentEl = root.querySelector("#opacity-match-match-percent");
+  const resultBanner = root.querySelector("#opacity-match-result-banner");
+  const resultBannerBody = root.querySelector("#opacity-match-result-banner-body");
+  const resultBannerIcon = resultBanner?.querySelector(".banner-icon");
 
   if (
     !wraps.base ||
     !wraps.background ||
     !wraps.target ||
+    !resultWrap ||
     !opacitySliderEl ||
     !opacityInput ||
-    !statusEl
+    !calcTargetBtn ||
+    !calcOpacityBtn ||
+    !copyResultBtn ||
+    !matchPercentEl ||
+    !resultBanner ||
+    !resultBannerBody ||
+    !resultBannerIcon
   ) {
     return null;
   }
 
   /** @type {ReturnType<typeof initSlider> | null} */
   let opacitySlider = null;
+  /** @type {ReturnType<typeof initColorInput> | null} */
+  let resultInput = null;
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let debounceTimer;
   let syncing = false;
+  /** @type {string | null} */
+  let blendedHex = null;
 
   /** @type {Record<"base" | "background" | "target", ReturnType<typeof initColorInput> | null>} */
   const colorInputs = {
@@ -177,22 +122,34 @@ export function initOpacityMatch(root) {
     };
   }
 
-  /**
-   * @param {ReturnType<typeof readValues>} values
-   * @returns {FieldKey[]}
-   */
-  function findEmptyFields(values) {
-    /** @type {FieldKey[]} */
-    const empty = [];
-    if (!values.base) empty.push("base");
-    if (!values.background) empty.push("background");
-    if (!values.target) empty.push("target");
-    if (values.opacityPercent === null) empty.push("opacity");
-    return empty;
+  function setMatchPercent(message) {
+    matchPercentEl.textContent = message;
+    matchPercentEl.removeAttribute("data-match");
   }
 
-  function updatePreview(values) {
-    paintSwatch(previewBaseSwatch, values.base);
+  /**
+   * @param {string} message
+   * @param {"warning" | "error" | "info"} [tone]
+   */
+  function setResultBanner(message, tone = "warning") {
+    Object.values(RESULT_BANNER_TONES).forEach((className) => {
+      resultBanner.classList.remove(className);
+    });
+    resultBanner.classList.add(RESULT_BANNER_TONES[tone]);
+    mountIcon(resultBannerIcon, RESULT_BANNER_ICONS[tone], {
+      className: "banner-icon-svg",
+    });
+    resultBannerBody.textContent = message;
+    showBanner(resultBanner);
+  }
+
+  function clearResultBanner() {
+    hideBanner(resultBanner);
+  }
+
+  function updateResult(values) {
+    blendedHex = null;
+    copyResultBtn.disabled = true;
 
     const baseRgb = values.base ? hexToRgb(values.base) : null;
     const backgroundRgb = values.background ? hexToRgb(values.background) : null;
@@ -202,88 +159,185 @@ export function initOpacityMatch(root) {
     if (targetRgb && backgroundRgb && alpha !== null) {
       const blended = blendOver(targetRgb, backgroundRgb, alpha);
       if (blended) {
-        paintSwatch(previewBlendedSwatch, rgbToHex(blended));
-        if (baseRgb && previewMatchEl) {
-          const matches = colorsMatch(blended, baseRgb, MATCH_TOLERANCE);
-          previewMatchEl.textContent = matches ? "Matches base" : "Does not match base";
-          previewMatchEl.dataset.match = matches ? "yes" : "no";
-        } else if (previewMatchEl) {
-          previewMatchEl.textContent = "";
-          previewMatchEl.removeAttribute("data-match");
+        blendedHex = rgbToHex(blended);
+        resultInput?.setValue(blendedHex, { emit: false });
+        copyResultBtn.disabled = false;
+
+        if (baseRgb) {
+          const percent = colorMatchPercent(blended, baseRgb);
+          setMatchPercent(`${percent}% match to base`);
+          matchPercentEl.dataset.match = percent === 100 ? "yes" : "partial";
+        } else {
+          setMatchPercent("Enter a base colour to compare.");
         }
         return;
       }
     }
 
-    paintSwatch(previewBlendedSwatch, null);
-    if (previewMatchEl) {
-      previewMatchEl.textContent = "";
-      previewMatchEl.removeAttribute("data-match");
-    }
+    resultInput?.setValue("", { emit: false });
+    setMatchPercent("Enter target, background, and opacity to preview the blend.");
   }
 
-  function setStatus(message) {
-    statusEl.textContent = message;
-  }
-
-  function applyComputedValue(result) {
-    syncing = true;
-    if (result.field === "opacity") {
-      opacitySlider?.setValue(result.value, { emit: false });
-    } else {
-      colorInputs[result.field]?.setValue(result.value, { emit: false });
-    }
-    syncing = false;
-  }
-
-  function recompute() {
+  function refreshPreview() {
     if (syncing) return;
-
-    const values = readValues();
-    updatePreview(values);
-
-    const emptyFields = findEmptyFields(values);
-
-    if (emptyFields.length === 0) {
-      setStatus("All four fields are filled. Adjust the preview above or clear one field to solve for it.");
-      return;
-    }
-
-    if (emptyFields.length > 1) {
-      setStatus("Fill three fields and leave one empty to solve for it.");
-      return;
-    }
-
-    const solved = computeMissing(emptyFields[0], values);
-
-    if (!solved) {
-      setStatus("Cannot solve for that combination — check the other values.");
-      return;
-    }
-
-    applyComputedValue(solved);
-    updatePreview(readValues());
-    setStatus(`Calculated ${labelForField(solved.field)}.`);
+    clearResultBanner();
+    updateResult(readValues());
   }
 
-  function scheduleRecompute() {
+  function scheduleRefreshPreview() {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(recompute, DEBOUNCE_MS);
+    debounceTimer = setTimeout(refreshPreview, DEBOUNCE_MS);
+  }
+
+  async function copyBlendedResult() {
+    if (!blendedHex) return;
+
+    const ok = await copyText(blendedHex);
+    flashButtonLabel(copyResultBtn, ok, {
+      success: "Copied",
+      fail: "Failed",
+    });
+  }
+
+  function calculateTarget() {
+    clearResultBanner();
+    const values = readValues();
+    updateResult(values);
+
+    if (!values.base || !values.background) {
+      setResultBanner("Enter base and background colours first.", "warning");
+      return;
+    }
+    if (values.opacity === null) {
+      setResultBanner("Enter opacity to calculate target.", "warning");
+      return;
+    }
+
+    const baseRgb = hexToRgb(values.base);
+    const backgroundRgb = hexToRgb(values.background);
+    if (!baseRgb || !backgroundRgb) {
+      setResultBanner("Enter valid base and background colours.", "warning");
+      return;
+    }
+
+    const solved = solveForeground(baseRgb, backgroundRgb, values.opacity);
+    if (!solved) {
+      setResultBanner("Cannot calculate target at 0% opacity — try a higher value.", "warning");
+      return;
+    }
+
+    syncing = true;
+    colorInputs.target?.setValue(rgbToHex(solved), { emit: false });
+    syncing = false;
+
+    updateResult(readValues());
+
+    const reblended = blendOver(solved, backgroundRgb, values.opacity);
+    const matchPercent =
+      reblended && baseRgb ? colorMatchPercent(reblended, baseRgb) : null;
+
+    if (matchPercent !== null && matchPercent < 100) {
+      setResultBanner(
+        `No exact target exists at this opacity — this is the closest match (${matchPercent}%).`,
+        "warning"
+      );
+    }
+  }
+
+  function calculateOpacity() {
+    clearResultBanner();
+    const values = readValues();
+    updateResult(values);
+
+    if (!values.base || !values.background) {
+      setResultBanner("Enter base and background colours first.", "warning");
+      return;
+    }
+    if (!values.target) {
+      setResultBanner("Enter target colour to calculate opacity.", "warning");
+      return;
+    }
+
+    const baseRgb = hexToRgb(values.base);
+    const backgroundRgb = hexToRgb(values.background);
+    const targetRgb = hexToRgb(values.target);
+    if (!baseRgb || !backgroundRgb || !targetRgb) {
+      setResultBanner("Enter valid base, background, and target colours.", "warning");
+      return;
+    }
+
+    const { alpha, exact } = solveAlphaBestEffort(baseRgb, targetRgb, backgroundRgb);
+
+    syncing = true;
+    opacitySlider?.setValue(Math.round(alpha * 100), { emit: false });
+    syncing = false;
+
+    updateResult(readValues());
+
+    const updated = readValues();
+    const blended =
+      updated.target && updated.background && updated.opacity !== null
+        ? blendOver(hexToRgb(updated.target), hexToRgb(updated.background), updated.opacity)
+        : null;
+    const matchPercent = blended ? colorMatchPercent(blended, baseRgb) : null;
+
+    if (!exact) {
+      setResultBanner(
+        matchPercent === null
+          ? "No exact opacity matches base on this background — using closest match."
+          : `No exact opacity matches base on this background — using closest match (${matchPercent}% match).`,
+        "warning"
+      );
+    }
   }
 
   COLOR_FIELDS.forEach((key) => {
     colorInputs[key] = initColorInput(wraps[key], {
-      onChange: recompute,
-      onInput: scheduleRecompute,
+      onChange: refreshPreview,
+      onInput: scheduleRefreshPreview,
     });
   });
 
+  resultInput = initColorInput(resultWrap);
+
+  const resultField = resultWrap.querySelector(".color-input-field");
+  if (resultField instanceof HTMLInputElement) {
+    resultField.readOnly = true;
+    resultField.addEventListener("beforeinput", (event) => {
+      event.preventDefault();
+    });
+    resultField.addEventListener("keydown", (event) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (
+        event.key === "Tab" ||
+        event.key.startsWith("Arrow") ||
+        event.key === "Home" ||
+        event.key === "End" ||
+        event.key === "PageUp" ||
+        event.key === "PageDown"
+      ) {
+        return;
+      }
+      event.preventDefault();
+    });
+  }
+
   opacitySlider = initSlider(opacitySliderEl, {
-    onInput: scheduleRecompute,
-    onChange: recompute,
+    onInput: scheduleRefreshPreview,
+    onChange: refreshPreview,
   });
 
-  recompute();
+  prepareButtonLabelFlash(copyResultBtn, {
+    idle: "Copy",
+    success: "Copied",
+    fail: "Failed",
+  });
 
-  return { recompute };
+  calcTargetBtn.addEventListener("click", calculateTarget);
+  calcOpacityBtn.addEventListener("click", calculateOpacity);
+  copyResultBtn.addEventListener("click", copyBlendedResult);
+
+  refreshPreview();
+
+  return { calculateTarget, calculateOpacity, refreshPreview };
 }

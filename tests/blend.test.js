@@ -5,6 +5,7 @@ import {
   blendOver,
   colorsMatch,
   solveAlpha,
+  solveAlphaBestEffort,
   solveForeground,
 } from "../app/utils/blend.js";
 
@@ -62,6 +63,38 @@ test("solveAlpha returns null when channels disagree", () => {
   const foreground = { r: 255, g: 0, b: 255 };
   const solved = solveAlpha(result, foreground, { r: 0, g: 128, b: 0 });
   assert.equal(solved, null);
+});
+
+test("solveAlphaBestEffort returns closest alpha when channels disagree", () => {
+  const result = { r: 128, g: 64, b: 192 };
+  const foreground = { r: 255, g: 0, b: 255 };
+  const background = { r: 0, g: 128, b: 0 };
+  const { alpha, exact } = solveAlphaBestEffort(result, foreground, background);
+  assert.equal(exact, false);
+  assert.ok(alpha >= 0 && alpha <= 1);
+
+  const blended = blendOver(foreground, background, alpha);
+  assert.ok(blended);
+  assert.ok(colorMatchPercentLike(blended, result) >= 70);
+});
+
+function colorMatchPercentLike(a, b) {
+  const dr = a.r - b.r;
+  const dg = a.g - b.g;
+  const db = a.b - b.b;
+  const distance = Math.sqrt(dr * dr + dg * dg + db * db);
+  const maxDistance = Math.sqrt(3 * 255 * 255);
+  return Math.max(0, Math.min(100, Math.round(100 - (distance / maxDistance) * 100)));
+}
+
+test("solveAlphaBestEffort keeps exact solves exact", () => {
+  const foreground = { r: 200, g: 100, b: 50 };
+  const alpha = 0.4;
+  const result = blendOver(foreground, WHITE, alpha);
+  assert.ok(result);
+  const solved = solveAlphaBestEffort(result, foreground, WHITE);
+  assert.equal(solved.exact, true);
+  assert.ok(Math.abs(solved.alpha - alpha) < 0.001);
 });
 
 test("blendOver rejects alpha outside 0…1", () => {

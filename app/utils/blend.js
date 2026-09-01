@@ -80,6 +80,18 @@ export function solveAlphaChannel(result, foreground, background) {
 }
 
 /**
+ * @param {Rgb} a
+ * @param {Rgb} b
+ * @returns {number}
+ */
+function colorDistanceSq(a, b) {
+  const dr = a.r - b.r;
+  const dg = a.g - b.g;
+  const db = a.b - b.b;
+  return dr * dr + dg * dg + db * db;
+}
+
+/**
  * @param {Rgb} result
  * @param {Rgb} foreground
  * @param {Rgb} background
@@ -104,6 +116,48 @@ export function solveAlpha(result, foreground, background) {
   const [first, ...rest] = alphas;
   if (!rest.every((alpha) => Math.abs(alpha - first) <= ALPHA_TOLERANCE)) return null;
   return first;
+}
+
+/**
+ * Closest α in 0…1 when channels disagree or the exact inverse is out of range.
+ * Uses least-squares on per-channel linear blend constraints.
+ *
+ * @param {Rgb} result
+ * @param {Rgb} foreground
+ * @param {Rgb} background
+ * @returns {{ alpha: number, exact: boolean }}
+ */
+export function solveAlphaBestEffort(result, foreground, background) {
+  const exactAlpha = solveAlpha(result, foreground, background);
+  if (exactAlpha !== null) {
+    return { alpha: exactAlpha, exact: true };
+  }
+
+  let numerator = 0;
+  let denominator = 0;
+
+  for (const key of CHANNELS) {
+    const delta = foreground[key] - background[key];
+    const offset = result[key] - background[key];
+    if (Math.abs(delta) < 1e-9) continue;
+    numerator += delta * offset;
+    denominator += delta * delta;
+  }
+
+  if (denominator < 1e-9) {
+    const matchesBackground = CHANNELS.every((key) => result[key] === background[key]);
+    if (matchesBackground) {
+      return { alpha: 1, exact: false };
+    }
+
+    const distBackground = colorDistanceSq(result, background);
+    const distForeground = colorDistanceSq(result, foreground);
+    return { alpha: distForeground <= distBackground ? 1 : 0, exact: false };
+  }
+
+  const unclamped = numerator / denominator;
+  const alpha = Math.max(0, Math.min(1, unclamped));
+  return { alpha, exact: false };
 }
 
 /**
