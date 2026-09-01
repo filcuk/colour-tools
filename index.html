@@ -59,7 +59,6 @@
                 <div class="content-tier-body">
                   <div class="panel-stack">
                 <div class="section-panel">
-                  <p class="panel-hint">Set base and background, then calculate target or opacity to match the base colour.</p>
                   <div class="panel-grid panel-grid-2">
                   <div class="color-input" id="opacity-match-base-wrap" data-color-input-open="picker"
                     data-color-input-default="#FCAF7C">
@@ -135,7 +134,7 @@
                       </div>
                     </div>
                     <p class="panel-hint" id="opacity-match-opacity-hint">Alpha 0–255 — matches the AA pair in output <code>#RRGGBBAA</code>.</p>
-                    <button type="button" class="btn btn-primary opacity-match-calc-btn" id="opacity-match-calc-target"
+                    <button type="button" class="btn opacity-match-calc-btn" id="opacity-match-calc-target"
                       data-tooltip="Use set opacity to calculate closest target colour match"
                       data-tooltip-position="top">Calculate Target</button>
                   </div>
@@ -166,11 +165,15 @@
                       </div>
                     </div>
                     <p class="panel-hint" id="opacity-match-target-hint">The opaque colour to apply at that opacity.</p>
-                    <button type="button" class="btn btn-primary opacity-match-calc-btn" id="opacity-match-calc-opacity"
+                    <button type="button" class="btn opacity-match-calc-btn" id="opacity-match-calc-opacity"
                       data-tooltip="Use set target colour to calculate closest opacity match"
                       data-tooltip-position="top">Calculate Opacity</button>
                   </div>
                 </div>
+                <button type="button" class="btn btn-primary opacity-match-calc-both-btn"
+                  id="opacity-match-calc-both"
+                  data-tooltip="Adjust target and opacity for the best match near your current settings"
+                  data-tooltip-position="top">Calculate both</button>
                 </div>
                 <h3 class="panel-title" id="opacity-match-result-heading">Result</h3>
                 <div id="opacity-match-result-banner" class="banner banner-warning hidden" role="status" hidden>
@@ -208,7 +211,7 @@
                             <input type="hidden" class="color-input-value" />
                           </div>
                         </div>
-                        <button type="button" class="btn btn-label-flash" id="opacity-match-copy-output"
+                        <button type="button" class="btn btn-primary btn-label-flash" id="opacity-match-copy-output"
                           aria-label="Copy output colour" disabled>
                           <span data-icon="copy" data-icon-class="btn-icon-svg" aria-hidden="true"></span>
                           <span class="btn-label-flash__label">Copy</span>

@@ -45,6 +45,18 @@ export function colorMatchPercent(a, b) {
 }
 
 /**
+ * @param {{ r: number, g: number, b: number }} a
+ * @param {{ r: number, g: number, b: number }} b
+ * @returns {number}
+ */
+function colorDistanceSq(a, b) {
+  const dr = a.r - b.r;
+  const dg = a.g - b.g;
+  const db = a.b - b.b;
+  return dr * dr + dg * dg + db * db;
+}
+
+/**
  * Calculate the opaque target colour at a given opacity (calculate-target flow).
  *
  * @param {string} baseHex
@@ -110,5 +122,94 @@ export function solveOpacityForMatch(baseHex, backgroundHex, targetHex) {
     reblended,
     shouldWarnClosest,
     matchPercent: reblended ? colorMatchPercent(reblended, baseRgb) : null,
+  };
+}
+
+/** Match quality dominates; deviation from current settings is secondary. */
+const BOTH_MATCH_WEIGHT = 1e6;
+
+/**
+ * Adjust target and opacity for the best base match, preferring values near the hints.
+ *
+ * @param {string} baseHex
+ * @param {string} backgroundHex
+ * @param {string | null | undefined} targetHex Hint target to stay near.
+ * @param {number | null | undefined} alphaByteHint Hint alpha byte (0–255) to stay near.
+ * @returns {{
+ *   targetHex: string,
+ *   targetRgb: { r: number, g: number, b: number },
+ *   alphaByte: number,
+ *   opacity: number,
+ *   reblended: { r: number, g: number, b: number },
+ *   isExactMatch: boolean,
+ *   shouldWarnClosest: boolean,
+ *   matchPercent: number,
+ * } | null}
+ */
+export function solveBothForMatch(baseHex, backgroundHex, targetHex, alphaByteHint) {
+  const baseRgb = hexToRgb(baseHex);
+  const backgroundRgb = hexToRgb(backgroundHex);
+  if (!baseRgb || !backgroundRgb) return null;
+
+  const hintTargetRgb =
+    typeof targetHex === "string" && targetHex ? hexToRgb(targetHex) : null;
+  const hintAlphaByte =
+    typeof alphaByteHint === "number" && Number.isFinite(alphaByteHint)
+      ? Math.max(0, Math.min(255, Math.round(alphaByteHint)))
+      : null;
+
+  /** @type {{
+   *   targetHex: string,
+   *   targetRgb: { r: number, g: number, b: number },
+   *   alphaByte: number,
+   *   opacity: number,
+   *   reblended: { r: number, g: number, b: number },
+   *   isExactMatch: boolean,
+   *   matchPercent: number,
+   *   score: number,
+   * } | null} */
+  let best = null;
+
+  for (let alphaByte = 1; alphaByte <= 255; alphaByte++) {
+    const opacity = opacityFromAlphaByte(alphaByte);
+    const solved = solveTargetColour(baseHex, backgroundHex, opacity);
+    if (!solved?.reblended) continue;
+
+    const matchPercent = colorMatchPercent(solved.reblended, baseRgb);
+    let deviation = 0;
+    if (hintTargetRgb) {
+      deviation += colorDistanceSq(solved.targetRgb, hintTargetRgb);
+    }
+    if (hintAlphaByte !== null) {
+      const delta = alphaByte - hintAlphaByte;
+      deviation += delta * delta;
+    }
+
+    const score = -matchPercent * BOTH_MATCH_WEIGHT + deviation;
+    if (!best || score < best.score) {
+      best = {
+        targetHex: solved.targetHex,
+        targetRgb: solved.targetRgb,
+        alphaByte,
+        opacity,
+        reblended: solved.reblended,
+        isExactMatch: solved.isExactMatch,
+        matchPercent,
+        score,
+      };
+    }
+  }
+
+  if (!best) return null;
+
+  return {
+    targetHex: best.targetHex,
+    targetRgb: best.targetRgb,
+    alphaByte: best.alphaByte,
+    opacity: best.opacity,
+    reblended: best.reblended,
+    isExactMatch: best.isExactMatch,
+    shouldWarnClosest: !best.isExactMatch,
+    matchPercent: best.matchPercent,
   };
 }

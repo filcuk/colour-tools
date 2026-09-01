@@ -20,7 +20,13 @@ import { setHidden } from "../utils/dom.js";
 import { mountIcon } from "../utils/icons.js";
 import { hexToRgb, rgbToHex } from "../utils/color.js";
 import { buildChannelChartDefinition } from "./opacity-match-chart.js";
-import { alphaByteFromOpacity, colorMatchPercent, solveOpacityForMatch, solveTargetColour } from "./opacity-match-calc.js";
+import {
+  alphaByteFromOpacity,
+  colorMatchPercent,
+  solveBothForMatch,
+  solveOpacityForMatch,
+  solveTargetColour,
+} from "./opacity-match-calc.js";
 import { formatChannelDeviations } from "./opacity-match-chart-data.js";
 
 const COLOR_FIELDS = /** @type {const} */ (["base", "background", "target"]);
@@ -304,6 +310,7 @@ export function initOpacityMatch(root) {
   const opacityInput = opacitySliderEl?.querySelector(".slider-input");
   const calcTargetBtn = root.querySelector("#opacity-match-calc-target");
   const calcOpacityBtn = root.querySelector("#opacity-match-calc-opacity");
+  const calcBothBtn = root.querySelector("#opacity-match-calc-both");
   const copyOutputBtn = root.querySelector("#opacity-match-copy-output");
   const matchPercentEl = root.querySelector("#opacity-match-match-percent");
   const resultBanner = root.querySelector("#opacity-match-result-banner");
@@ -321,6 +328,7 @@ export function initOpacityMatch(root) {
     !opacityInput ||
     !calcTargetBtn ||
     !calcOpacityBtn ||
+    !calcBothBtn ||
     !copyOutputBtn ||
     !matchPercentEl ||
     !resultBanner ||
@@ -598,6 +606,55 @@ export function initOpacityMatch(root) {
     persistState(readValues());
   }
 
+  function calculateBoth() {
+    clearResultBanner();
+    const values = readValues();
+    updateResult(values);
+
+    if (!values.base || !values.background) {
+      setResultBanner("Enter base and background colours first.", "warning");
+      return;
+    }
+    if (!values.target && values.alphaByte === null) {
+      setResultBanner("Enter target and opacity to optimize from your current settings.", "warning");
+      return;
+    }
+
+    const baseRgb = hexToRgb(values.base);
+    const backgroundRgb = hexToRgb(values.background);
+    if (!baseRgb || !backgroundRgb) {
+      setResultBanner("Enter valid base and background colours.", "warning");
+      return;
+    }
+
+    const solved = solveBothForMatch(
+      values.base,
+      values.background,
+      values.target,
+      values.alphaByte
+    );
+    if (!solved) {
+      setResultBanner("Could not calculate target and opacity for these colours.", "warning");
+      return;
+    }
+
+    syncing = true;
+    colorInputs.target?.setValue(solved.targetHex, { emit: false });
+    opacitySlider?.setValue(solved.alphaByte, { emit: false });
+    syncing = false;
+
+    updateResult(readValues());
+
+    if (solved.shouldWarnClosest) {
+      setResultBanner(
+        `No exact match exists — adjusted both for closest result (${formatMatchPercent(solved.matchPercent)}).`,
+        "warning"
+      );
+    }
+
+    persistState(readValues());
+  }
+
   COLOR_FIELDS.forEach((key) => {
     const savedColor = savedState?.[key];
     colorInputs[key] = initColorInput(wraps[key], {
@@ -626,13 +683,15 @@ export function initOpacityMatch(root) {
 
   calcTargetBtn.addEventListener("click", calculateTarget);
   calcOpacityBtn.addEventListener("click", calculateOpacity);
+  calcBothBtn.addEventListener("click", calculateBoth);
   copyOutputBtn.addEventListener("click", copyOutputColour);
   wireCalcButtonTooltipNowrap(calcTargetBtn);
   wireCalcButtonTooltipNowrap(calcOpacityBtn);
+  wireCalcButtonTooltipNowrap(calcBothBtn);
 
   persistEnabled = true;
   refreshPreview();
   const help = initOpacityMatchHelp();
 
-  return { calculateTarget, calculateOpacity, refreshPreview, ...help };
+  return { calculateTarget, calculateOpacity, calculateBoth, refreshPreview, ...help };
 }

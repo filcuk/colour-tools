@@ -4,6 +4,7 @@ import {
   alphaByteFromOpacity,
   colorMatchPercent,
   opacityFromAlphaByte,
+  solveBothForMatch,
   solveOpacityForMatch,
   solveTargetColour,
 } from "../app/tools/opacity-match-calc.js";
@@ -57,4 +58,25 @@ test("solveOpacityForMatch does not warn when solver reports an exact alpha", ()
 
 test("solveTargetColour returns null at 0 alpha", () => {
   assert.equal(solveTargetColour(BASE, WHITE, 0), null);
+});
+
+test("solveBothForMatch finds a high match near hinted target and alpha", () => {
+  const result = solveBothForMatch(BASE, WHITE, ORANGE_TARGET, 128);
+  assert.ok(result);
+  assert.ok(result.matchPercent >= 99);
+  assert.ok(Math.abs(result.alphaByte - 128) <= 5);
+  const targetRgb = hexToRgb(result.targetHex);
+  const hintRgb = hexToRgb(ORANGE_TARGET);
+  assert.ok(targetRgb && hintRgb);
+  const dr = targetRgb.r - hintRgb.r;
+  const dg = targetRgb.g - hintRgb.g;
+  const db = targetRgb.b - hintRgb.b;
+  assert.ok(dr * dr + dg * dg + db * db <= 900);
+});
+
+test("solveBothForMatch maximises match when hints are omitted", () => {
+  const hinted = solveBothForMatch(BASE, WHITE, ORANGE_TARGET, 128);
+  const unhinted = solveBothForMatch(BASE, WHITE, null, null);
+  assert.ok(hinted && unhinted);
+  assert.ok(unhinted.matchPercent >= hinted.matchPercent);
 });

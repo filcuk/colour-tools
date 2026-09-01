@@ -40,6 +40,11 @@
   margin-top: 0.65rem;
 }
 
+.opacity-match-calc-both-btn {
+  width: 100%;
+  margin-top: 0;
+}
+
 .tooltip.opacity-match-tooltip-nowrap {
   max-width: none;
 }
