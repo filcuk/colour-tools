@@ -4,9 +4,11 @@
  */
 
 import { hideBanner, showBanner } from "../components/banner.js";
+import { initAboutDialog } from "../components/about-dialog.js";
 import { initChart } from "../components/charts.js";
 import { initColorInput } from "../components/color-input.js";
 import { initSlider } from "../components/slider.js";
+import { initTutorial } from "../components/tutorial.js";
 import { blendOver, solveAlphaBestEffort, solveForeground, colorsMatch } from "../utils/blend.js";
 import {
   prepareButtonLabelFlash,
@@ -159,6 +161,63 @@ function wireCalcButtonTooltipNowrap(button) {
   button.addEventListener("focusin", enableNowrap);
   button.addEventListener("pointerleave", disableNowrap);
   button.addEventListener("focusout", disableNowrap);
+}
+
+/** @type {import("../components/tutorial.js").TutorialStep[]} */
+const OPACITY_MATCH_TOUR_STEPS = [
+  {
+    target: "#opacity-match-base-wrap",
+    title: "Base colour",
+    body: "The solid colour you want the blend to match.",
+    position: "bottom",
+  },
+  {
+    target: "#opacity-match-background-wrap",
+    title: "Background colour",
+    body: "The surface behind your semi-transparent layer.",
+    position: "bottom",
+  },
+  {
+    target: "#opacity-match-opacity",
+    title: "Opacity",
+    body: "Set the layer opacity, then calculate the target colour needed to hit the base on this background.",
+    position: "bottom",
+  },
+  {
+    target: "#opacity-match-target-wrap",
+    title: "Target colour",
+    body: "Or enter the target colour you need to work with, then calculate the opacity.",
+    position: "bottom",
+  },
+  {
+    target: "#opacity-match-output-field",
+    title: "Output",
+    body: "This displays the colour you need to use.",
+    position: "top",
+  },
+];
+
+function initOpacityMatchHelp() {
+  const aboutDialogEl = document.getElementById("opacity-match-about-dialog");
+  const aboutOpenBtn = document.getElementById("opacity-match-about-open");
+  const guidedTourBtn = document.getElementById("opacity-match-guided-tour");
+
+  const tour = initTutorial({
+    id: "opacity-match-tour",
+    steps: OPACITY_MATCH_TOUR_STEPS,
+  });
+
+  const about = initAboutDialog({
+    dialogEl: aboutDialogEl,
+    openTriggers: aboutOpenBtn ? [aboutOpenBtn] : [],
+  });
+
+  guidedTourBtn?.addEventListener("click", () => {
+    about?.closeDialog();
+    tour?.start();
+  });
+
+  return { about, tour };
 }
 
 /**
@@ -530,6 +589,7 @@ export function initOpacityMatch(root) {
   restoreSavedState();
   persistEnabled = true;
   refreshPreview();
+  const help = initOpacityMatchHelp();
 
-  return { calculateTarget, calculateOpacity, refreshPreview };
+  return { calculateTarget, calculateOpacity, refreshPreview, ...help };
 }

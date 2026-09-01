@@ -50,7 +50,10 @@
               aria-labelledby="tool-opacity-match">
               <div class="panel-stack">
                 <h3 class="panel-title" id="opacity-match-heading">Opacity match</h3>
-                <p class="content-tier-lead">Find the closest colour opacity blend to a target solid colour</p>
+                <p class="content-tier-lead">
+                  Find the closest colour opacity blend to a target solid colour
+                  <button type="button" id="opacity-match-about-open" class="btn btn-link tagline-link">What?</button>
+                </p>
                 <div class="section-panel">
                   <p class="panel-hint">Set base and background, then calculate target or opacity to match the base colour.</p>
                   <div class="panel-grid panel-grid-2 opacity-match-grid">
@@ -187,7 +190,7 @@
                         </div>
                       </div>
                     </div>
-                    <div class="opacity-match-result-field">
+                    <div class="opacity-match-result-field" id="opacity-match-output-field">
                       <label class="field-label" for="opacity-match-output">Output colour</label>
                       <div class="opacity-match-result-input-row">
                         <div class="color-input opacity-match-result-input" id="opacity-match-output-wrap"
@@ -220,6 +223,27 @@
         </div>
       </section>
     </main>
+
+    <div id="opacity-match-about-dialog" class="modal hidden" role="dialog" aria-modal="true"
+      aria-labelledby="opacity-match-about-dialog-title" hidden>
+      <div class="modal-backdrop" data-dialog-close></div>
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2 id="opacity-match-about-dialog-title">What does this do?</h2>
+          <button type="button" class="modal-close" aria-label="Close" data-dialog-close>×</button>
+        </div>
+        <div class="modal-body">
+          <p>If you <em>need to use transparency</em>, also have to <em>match a particular solid colour</em> at the same time, this is the tool for you.</p>
+          <p>By defining the base and background colours, you can calculate the nearest target colour and opacity.</p>
+        </div>
+        <div class="modal-footer">
+          <div class="modal-footer-actions">
+            <button type="button" class="btn" id="opacity-match-guided-tour">Guided tour</button>
+            <button type="button" class="btn btn-primary" data-dialog-close data-dialog-default>Got it</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="app/main.js"></script>
   </body>

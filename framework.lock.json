@@ -13,7 +13,11 @@
     "color-input",
     "color-set",
     "color-picker",
-    "charts"
+    "charts",
+    "dialog",
+    "about-dialog",
+    "popover",
+    "tutorial"
   ],
   "skills": [
     "*"
