@@ -48,12 +48,16 @@
           <div class="segmented-control-panels">
             <div class="segmented-control-panel" id="tool-panel-opacity-match" role="region"
               aria-labelledby="tool-opacity-match">
-              <div class="panel-stack">
-                <h3 class="panel-title" id="opacity-match-heading">Opacity match</h3>
-                <p class="content-tier-lead">
-                  Calculate opaque colours and opacity to match blends on any background.
-                  <button type="button" id="opacity-match-about-open" class="btn btn-link tagline-link">What?</button>
-                </p>
+              <section class="content-tier">
+                <header class="content-tier-header">
+                  <h2 class="segment-title" id="opacity-match-heading" data-page-nav-tier>Opacity match</h2>
+                  <p class="content-tier-lead">
+                    Calculate opaque colours and opacity to match blends on any background.
+                    <button type="button" id="opacity-match-about-open" class="btn btn-link tagline-link">What?</button>
+                  </p>
+                </header>
+                <div class="content-tier-body">
+                  <div class="panel-stack">
                 <div class="section-panel">
                   <p class="panel-hint">Set base and background, then calculate target or opacity to match the base colour.</p>
                   <div class="panel-grid panel-grid-2 opacity-match-grid">
@@ -217,7 +221,9 @@
                   <div class="charts opacity-match-channel-chart hidden" id="opacity-match-channel-chart"
                     data-charts-height="240" aria-label="Grouped bar chart of base, target, and blended Red, Green, and Blue values" hidden></div>
                 </div>
-              </div>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </div>
