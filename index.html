@@ -31,11 +31,87 @@
 
     <main id="main">
       <section class="content-section">
-        <h2 id="getting-started" class="section-title">Getting started</h2>
-        <p>
-          Replace this page with your app content. Edit <code>index.html</code> and
-          add your logic in <code>app/main.js</code>.
-        </p>
+        <div class="segmented-control segmented-control--full" id="tool-nav"
+          data-segmented-control-default="opacity-match">
+          <div class="segmented-control-list" role="radiogroup" aria-label="Tools">
+            <button type="button" class="segmented-control-item" role="radio" aria-checked="true"
+              id="tool-opacity-match" aria-controls="tool-panel-opacity-match"
+              data-segmented-control-value="opacity-match">Opacity match</button>
+          </div>
+          <input type="hidden" class="segmented-control-value" value="opacity-match" />
+          <div class="segmented-control-panels">
+            <div class="segmented-control-panel" id="tool-panel-opacity-match" role="region"
+              aria-labelledby="tool-opacity-match">
+              <p class="content-tier-lead">Fill any three fields and leave one empty to calculate it.</p>
+              <div class="section-panel">
+                <div class="panel-grid panel-grid-2 opacity-match-grid">
+                  <div class="field">
+                    <label class="field-label" for="opacity-match-base">Base colour</label>
+                    <div class="color-input-control">
+                      <span class="color-input-swatch" id="opacity-match-base-swatch" aria-hidden="true"></span>
+                      <input type="text" id="opacity-match-base" class="input color-input-field" value="#FCAF7C"
+                        placeholder="#RRGGBB" autocomplete="off" spellcheck="false"
+                        aria-describedby="opacity-match-base-hint" />
+                    </div>
+                    <p class="panel-hint" id="opacity-match-base-hint">The blended colour you want to match.</p>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="opacity-match-background">Background colour</label>
+                    <div class="color-input-control">
+                      <span class="color-input-swatch" id="opacity-match-background-swatch" aria-hidden="true"></span>
+                      <input type="text" id="opacity-match-background" class="input color-input-field" value="#FFFFFF"
+                        placeholder="#RRGGBB" autocomplete="off" spellcheck="false"
+                        aria-describedby="opacity-match-background-hint" />
+                    </div>
+                    <p class="panel-hint" id="opacity-match-background-hint">The surface behind the layer.</p>
+                  </div>
+                  <div class="field">
+                    <div class="slider" id="opacity-match-opacity" data-slider-min="0" data-slider-max="100"
+                      data-slider-default="50" data-slider-format="percentage">
+                      <label class="field-label" for="opacity-match-opacity-range">Opacity</label>
+                      <div class="slider-row">
+                        <input type="range" id="opacity-match-opacity-range" class="slider-range" />
+                        <div class="slider-input-wrap">
+                          <input type="text" class="input slider-input" inputmode="numeric"
+                            aria-label="Opacity percent" aria-describedby="opacity-match-opacity-hint" />
+                          <span class="slider-suffix hidden" aria-hidden="true">%</span>
+                        </div>
+                        <input type="hidden" class="slider-value" />
+                      </div>
+                    </div>
+                    <p class="panel-hint" id="opacity-match-opacity-hint">Clear to solve for opacity.</p>
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="opacity-match-target">Target colour</label>
+                    <div class="color-input-control">
+                      <span class="color-input-swatch is-empty" id="opacity-match-target-swatch" aria-hidden="true"></span>
+                      <input type="text" id="opacity-match-target" class="input color-input-field" value=""
+                        placeholder="#RRGGBB" autocomplete="off" spellcheck="false"
+                        aria-describedby="opacity-match-target-hint" />
+                    </div>
+                    <p class="panel-hint" id="opacity-match-target-hint">The opaque colour to apply at that opacity.</p>
+                  </div>
+                </div>
+                <div class="panel-divider" aria-hidden="true"></div>
+                <div class="panel-row opacity-match-preview">
+                  <div class="opacity-match-preview-item">
+                    <span class="color-input-swatch opacity-match-preview-swatch is-empty"
+                      id="opacity-match-preview-blended" aria-hidden="true"></span>
+                    <span class="panel-hint">Blended result</span>
+                  </div>
+                  <div class="opacity-match-preview-item">
+                    <span class="color-input-swatch opacity-match-preview-swatch is-empty"
+                      id="opacity-match-preview-base" aria-hidden="true"></span>
+                    <span class="panel-hint">Base colour</span>
+                  </div>
+                  <p class="opacity-match-preview-match panel-hint" id="opacity-match-preview-match"
+                    aria-live="polite"></p>
+                </div>
+                <p class="panel-hint" id="opacity-match-status" aria-live="polite"></p>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
 

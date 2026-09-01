@@ -11,3 +11,30 @@
   --accent: #eb8076;
   --accent-fg: #0d1117;
 }
+
+.opacity-match-preview {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.opacity-match-preview-item {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.opacity-match-preview-swatch {
+  block-size: 4rem;
+  inline-size: 4rem;
+}
+
+.opacity-match-preview-match[data-match="yes"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.opacity-match-preview-match[data-match="no"] {
+  color: var(--muted);
+}
