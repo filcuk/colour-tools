@@ -104,13 +104,36 @@ function readSavedState() {
 function persistState(values) {
   try {
     const payload = { ...(readSavedState() ?? {}) };
-    if (isValidHexColor(values.base)) payload.base = values.base;
-    if (isValidHexColor(values.background)) payload.background = values.background;
-    if (isValidHexColor(values.target)) payload.target = values.target;
+
+    if (isValidHexColor(values.base)) {
+      payload.base = values.base;
+    } else {
+      delete payload.base;
+    }
+
+    if (isValidHexColor(values.background)) {
+      payload.background = values.background;
+    } else {
+      delete payload.background;
+    }
+
+    if (isValidHexColor(values.target)) {
+      payload.target = values.target;
+    } else {
+      delete payload.target;
+    }
+
     if (values.opacityPercent !== null && Number.isFinite(values.opacityPercent)) {
       payload.opacityPercent = values.opacityPercent;
+    } else {
+      delete payload.opacityPercent;
     }
-    localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(payload));
+
+    if (Object.keys(payload).length === 0) {
+      localStorage.removeItem(STATE_STORAGE_KEY);
+    } else {
+      localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(payload));
+    }
   } catch {
     // Ignore quota / private-mode errors.
   }
