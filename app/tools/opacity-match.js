@@ -152,18 +152,60 @@ function lockReadOnlyColorField(wrap) {
   });
 }
 
+/** Matches shared-slot hide cleanup in `app/components/tooltip.js`. */
+const TOOLTIP_HIDE_CLEANUP_MS = 120;
+
 /**
  * @param {HTMLButtonElement} button
  */
 function wireCalcButtonTooltipNowrap(button) {
   const tooltipNowrapClass = "opacity-match-tooltip-nowrap";
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let removeTimer = null;
+  /** @type {((event: TransitionEvent) => void) | null} */
+  let removeTransitionHandler = null;
+
+  const tooltipEl = () => document.getElementById("tooltip");
+
+  const cancelDeferredRemove = () => {
+    if (removeTimer !== null) {
+      window.clearTimeout(removeTimer);
+      removeTimer = null;
+    }
+    const tip = tooltipEl();
+    if (removeTransitionHandler && tip) {
+      tip.removeEventListener("transitionend", removeTransitionHandler);
+    }
+    removeTransitionHandler = null;
+  };
+
+  const finishRemoveNowrap = () => {
+    cancelDeferredRemove();
+    tooltipEl()?.classList.remove(tooltipNowrapClass);
+  };
 
   const enableNowrap = () => {
-    document.getElementById("tooltip")?.classList.add(tooltipNowrapClass);
+    cancelDeferredRemove();
+    tooltipEl()?.classList.add(tooltipNowrapClass);
   };
 
   const disableNowrap = () => {
-    document.getElementById("tooltip")?.classList.remove(tooltipNowrapClass);
+    const tip = tooltipEl();
+    if (!tip?.classList.contains(tooltipNowrapClass)) return;
+
+    if (tip.hidden) {
+      finishRemoveNowrap();
+      return;
+    }
+
+    // Tooltip keeps its layout during the opacity fade — defer nowrap removal.
+    cancelDeferredRemove();
+    removeTransitionHandler = (event) => {
+      if (event.target !== tip || event.propertyName !== "opacity") return;
+      finishRemoveNowrap();
+    };
+    tip.addEventListener("transitionend", removeTransitionHandler);
+    removeTimer = window.setTimeout(finishRemoveNowrap, TOOLTIP_HIDE_CLEANUP_MS);
   };
 
   button.addEventListener("pointerenter", enableNowrap);
