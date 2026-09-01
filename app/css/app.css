@@ -3,17 +3,95 @@
  * Add app-specific rules here (or pull in additional local sheets).
  */
 
-/* Demo-only code area limit; the reusable component has no height limit. */
-#demo-code-block .code-block-body {
-  max-height: 400px;
-  overflow: hidden;
+:root {
+  --accent: #d75341;
 }
 
-#demo-code-block .code-block-body > .code-block-scroll {
-  max-height: 400px;
+:root[data-theme="dark"] {
+  --accent: #eb8076;
+  --accent-fg: #0d1117;
 }
 
-#demo-code-block.is-expanded .code-block-body,
-#demo-code-block.is-expanded .code-block-body > .code-block-scroll {
-  max-height: none;
+#tool-nav .segmented-control-panels {
+  border: none;
+  background: transparent;
+  overflow: visible;
+}
+
+#tool-nav .segmented-control-panel {
+  padding: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.opacity-match-input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.opacity-match-opacity-field {
+  max-width: none;
+}
+
+.opacity-match-calc-btn {
+  width: 100%;
+  margin-top: 0.65rem;
+}
+
+.opacity-match-calc-both-btn {
+  width: 100%;
+  margin-top: 0;
+}
+
+.tooltip.opacity-match-tooltip-nowrap {
+  max-width: none;
+}
+
+.tooltip.opacity-match-tooltip-nowrap .tooltip__label {
+  white-space: nowrap;
+}
+
+.opacity-match-result-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.opacity-match-result-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.opacity-match-result-input-row .btn-label-flash > [data-icon] {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.opacity-match-result-input-row .btn-label-flash .btn-icon-svg {
+  display: block;
+}
+
+.opacity-match-result-input-row .opacity-match-result-input {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.opacity-match-result-input .color-input-field[readonly] {
+  cursor: text;
+}
+
+.opacity-match-channel-chart > svg.ts-chart text[data-ts-key="x-label"],
+.opacity-match-channel-chart > svg.ts-chart text[data-ts-key="y-label"] {
+  display: none;
+}
+
+.opacity-match-result-input .color-input-swatch {
+  cursor: default;
 }
